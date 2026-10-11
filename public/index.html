@@ -2043,6 +2043,7 @@ const REVIVES = [
   BUNDLES.push({ name: 'Thousand Sunny Series', pin: 1, skins: ['Chopper', 'Robin', 'Brook'].map(sI), wrap: wI('Sakura Pink'), melee: mI('Soul Cane'), intro: Math.max(0, aI('Salsa')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Grand Line Series', pin: 1, skins: ['Luffy', 'Zoro', 'Sanji'].map(sI), wrap: wI('Straw Gold'), melee: mI('Wado Katana'), intro: Math.max(0, aI('Raise the Roof')), fin: fI('Haymaker'), rev: rI('Canteen') });
   BUNDLES.push({ name: 'Adventure Series', pin: 1, skins: ['Finn', 'Jake', 'Marceline'].map(sI), wrap: wI('Ooo Sky'), melee: mI("Hero's Sword"), intro: Math.max(0, aI('Victory Jump')), fin: fI('Flash Kick'), rev: rI('Pep Talk') });
+  for (const b of BUNDLES) if (b.pin) for (const i of b.skins) if (SKINS[i]) SKINS[i].cel = 1;      // every crossover character is cel shaded
 }
 // ----- battle pass: Season Beta. 100 free tiers and 100 paid ones, 100 XP a tier -----
 const BP_COST = 10000, BP_XP = 100, BP = { free: [], paid: [] };
@@ -2117,6 +2118,24 @@ function setAura(g, i) {                        // puts aura i on a character (0
   const old = g.userData.auraG; if (old) { g.remove(old); g.userData.auraG = null; }
   i = i | 0; if (i <= 0 || !AURAS[i]) return;
   try { const a = mkAura(AURAS[i]); g.add(a); g.userData.auraG = a; } catch (e) {}
+}
+// ----- cel shading for the crossover characters: flat bands of light and a dark outline, like a cartoon -----
+let celRamp = null, celLine = null; const celCache = new Map();
+function celMat(m) {                            // the toon twin of a normal material (made once, then shared)
+  let t = celCache.get(m); if (t) return t;
+  if (!celRamp) { celRamp = new THREE.DataTexture(new Uint8Array([95, 95, 95, 255, 175, 175, 175, 255, 255, 255, 255, 255]), 3, 1, THREE.RGBAFormat); celRamp.minFilter = celRamp.magFilter = THREE.NearestFilter; celRamp.generateMipmaps = false; celRamp.needsUpdate = true; }
+  t = new THREE.MeshToonMaterial({ gradientMap: celRamp, map: m.map || null, transparent: !!m.transparent, opacity: m.opacity === undefined ? 1 : m.opacity, side: m.side });
+  t.color.copy(m.color); if (m.emissive) { t.emissive.copy(m.emissive); t.emissiveIntensity = m.emissiveIntensity === undefined ? 1 : m.emissiveIntensity; }
+  celCache.set(m, t); return t;
+}
+function celMats(root, skip) {                  // swaps every lit material on a character for its toon twin; the gun keeps its own (wraps animate it)
+  root.traverse(o => { if (!o.isMesh || !o.material || !o.material.isMeshPhongMaterial) return; for (let q = o; q; q = q.parent) if (q === skip) return; o.material = celMat(o.material); });
+}
+function celOutline(root) {                     // a slightly larger back-facing copy of each piece drawn in near-black gives the ink line
+  if (!celLine) { celLine = new THREE.MeshBasicMaterial({ color: 0x06080a, side: THREE.BackSide, fog: true });
+    celLine.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize( normal ) * 0.011;'); }; }
+  const list = []; root.traverse(o => { if (o.isMesh && o.material && o.material.isMeshToonMaterial && !o.material.transparent && o.geometry && o.geometry.attributes && o.geometry.attributes.normal) list.push(o); });
+  for (const m of list) { const o = new THREE.Mesh(m.geometry, celLine); o.castShadow = false; o.receiveShadow = false; o.userData.ink = 1; m.add(o); }
 }
 let auraPrev = -1;
 function buildHero() { buildChar(hero, heroUp, heroHead, SKINS[prevSkin >= 0 ? prevSkin : save.skin], WRAPS[prevWrap >= 0 ? prevWrap : save.wrap], true); setAura(hero, auraPrev >= 0 ? auraPrev : save.aura); }
@@ -2354,6 +2373,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     else if (S.hs === 'bun') ball(H, hair, .052, 0, .11, -.075);
     else if (S.hs === 'braid') { hr(H, hair, .028, .02, [0, -.01, -.11], [.02, -.32, -.14], 6); ball(H, hair, .028, .02, -.33, -.14); }
   }
+  if (S.cel) { try { celMats(outer, rig.gun); if (main) celOutline(outer); } catch (e) {} }
 }
 hero.visible = false; scene.add(hero);hero.visible = false; scene.add(hero);
 
@@ -3813,6 +3833,7 @@ function mkChar(si, wi) {
   try { mergeChar(g, !lite); } catch (e) {}
   if (lite) g.traverse(o => { if (o.isMesh) o.castShadow = false; });
   g.userData.sm = []; g.traverse(o => { if (o.isMesh && o.castShadow) g.userData.sm.push(o); }); g.userData.shOn = true;
+  if (SKINS[si].cel && !lite) { try { celOutline(g); } catch (e) {} }
   const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = .025; sh.renderOrder = 1; g.add(sh);     // soft contact shadow
   scene.add(g); return g;
 }
@@ -4090,7 +4111,7 @@ function renderThumb(kind, id) {
   const tallPic = kind === 'coin' || kind === 'skin' || kind === 'intro' || kind === 'fin' || kind === 'rev' || kind === 'aura', key = kind + id, w = tallPic ? 256 : 352, h = tallPic ? 320 : 198, g = new THREE.Group(), rtKey = tallPic ? 'skin' : 'wide';
   try {
     if (kind === 'skin') {
-      buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[id], WRAPS[0], false);
+      buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[id], WRAPS[0], false); if (SKINS[id].cel) celOutline(g);
       g.rotation.y = .5; thumbCam.position.set(0, 1.05, 4.5); vT.set(0, .96, 0);
     } else if (kind === 'aura') {
       const pr = String(id).split('_');
