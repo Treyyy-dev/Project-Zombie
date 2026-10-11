@@ -599,7 +599,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
       </div>
       <div class="sh-body">
         <div class="sh-list" id="shList">
-          <section><h3>Series bundles</h3><p>Three themed sets at 30% off, each with a melee weapon and an intro/outro; the newest ones add a finisher and a revive. You only pay for the pieces you don't own.</p><div class="sh-bund" id="shBundles"></div></section>
+          <section><h3>Series bundles</h3><p>Themed sets at 30% off, each with a melee weapon and an intro/outro; the newest ones add a finisher and a revive. You only pay for the pieces you don't own.</p><div class="sh-bund" id="shBundles"></div></section>
           <section><h3>Skins</h3><div class="sh-grid" id="shSkins"></div></section>
           <section><h3>Wraps</h3><div class="sh-grid wraps" id="shWraps"></div></section>
           <section><h3>Melee weapons</h3><div class="sh-grid wraps" id="shMelees"></div></section>
@@ -2003,6 +2003,11 @@ const REVIVES = [
   SK('Zoro', 900, 0xf0efe6, 0x1c2620, 'bare', { t: 0xd9a878, h: 0x3d9a52, x: 'sash', a: 0x2c6e3c, b: 0x101010, g: 's' });
   SK('Sanji', 900, 0x15161a, 0x15161a, 'bare', { t: 0xf2cfae, h: 0xe9cf5a, f: 'stache', x: 'tie buckle', a: 0x2a4a9a, b: 0x0c0c0c, g: 's' });
   WR('Straw Gold', 300, { col: 0xe6c66a }); ML('Wado Katana', 900, 5, 118, .48, 2.5, 2, .2, 'hip', '118 damage · fast, long, hits two');
+  // ----- Thousand Sunny Series: three more of the fan-made pirate crew -----
+  SK('Chopper', 900, 0x8a5a34, 0x7a3a22, 'reindeer', { ld: 0xf08ab0, t: 0x9a6a40, h: 0x5a3a1e, x: 'shorts backpack', a: 0x3a6ad0, b: 0x3a2a1c, g: 0x3a2a1c, sz: .8 });
+  SK('Robin', 900, 0x6a3a9e, 0x1c1c26, 'bare', { hs: 'long', fem: 1, t: 0xe2b48c, h: 0x0d0d12, f: 'shades', x: 'zip', b: 0x24182e, g: 's' });
+  SK('Brook', 900, 0x14141a, 0x14141a, 'afrohat', { ld: 0x101014, t: 0xe4dcc6, h: 0x0c0c10, x: 'tie ribs buckle', a: 0xd8b024, b: 0x0c0c0c, g: 0xe4dcc6 });
+  WR('Sakura Pink', 300, { col: 0xf7a8c4 }); ML('Soul Cane', 900, 5, 112, .44, 2.4, 2, .2, 'hip', '112 damage · very fast sword');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2010,6 +2015,7 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Thousand Sunny Series', pin: 1, skins: ['Chopper', 'Robin', 'Brook'].map(sI), wrap: wI('Sakura Pink'), melee: mI('Soul Cane'), intro: Math.max(0, aI('Salsa')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Grand Line Series', pin: 1, skins: ['Luffy', 'Zoro', 'Sanji'].map(sI), wrap: wI('Straw Gold'), melee: mI('Wado Katana'), intro: Math.max(0, aI('Raise the Roof')), fin: fI('Haymaker'), rev: rI('Canteen') });
   BUNDLES.push({ name: 'Adventure Series', pin: 1, skins: ['Finn', 'Jake', 'Marceline'].map(sI), wrap: wI('Ooo Sky'), melee: mI("Hero's Sword"), intro: Math.max(0, aI('Victory Jump')), fin: fI('Flash Kick'), rev: rI('Pep Talk') });
 }
@@ -2036,7 +2042,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   for (const g of [heroHead, heroUp, hero]) while (g.children.length) g.remove(g.children[0]);
   // everything hangs off an inner body group with jointed arms and legs, so poses and intros can move it
   const outer = hero; hero = new THREE.Group(); hero.rotation.order = 'YXZ'; outer.add(hero);
-  outer.scale.set(S.fem ? .93 : 1, S.fem ? .965 : 1, S.fem ? .93 : 1);
+  { const z = S.sz || 1; outer.scale.set((S.fem ? .93 : 1) * z, (S.fem ? .965 : 1) * z, (S.fem ? .93 : 1) * z); }
   heroUp.position.set(0, 0, 0); heroUp.rotation.set(0, 0, 0); heroHead.rotation.set(0, 0, 0);
   const rig = { root: hero, up: heroUp, head: heroHead }; outer.userData.rig = rig;
   const piv = (parent, x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; };
@@ -2118,7 +2124,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (has('stars')) for (const [x, y] of [[-.1, 1.34], [.07, 1.2], [-.03, 1.1], [.11, 1.42]]) hb(heroUp, gold, .03, .03, .006, x, y, .136).rotation.z = .78;
   if (has('scarf')) cyl(heroUp, acc, .09, .1, .07, 0, 1.51, .005);
   if (has('cape')) hb(heroUp, acc, .44, 1.0, .02, 0, 1.0, -.19).rotation.x = .09;
-  const bareFace = ['strawhat', 'bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
+  const bareFace = ['reindeer', 'strawhat', 'bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
   hr(heroUp, S.hd === 'hood' || S.hd === 'astro' ? uni : S.hd === 'skull' ? bone : S.hd === 'robot' || S.hd === 'knight' ? steel : bareFace ? tone : black, .055, .05, [0, 1.48, 0], [0, 1.56, .005], 8);   // neck
 
   // ----- firearm held at the low ready, muzzle down to the left -----
@@ -2174,6 +2180,11 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     case 'helmet': skull(black); halfCap(lid, .128).scale.set(1, 1.05, 1.1); hb(H, lid, .262, .02, .29, 0, .02, 0); hb(H, lens, .17, .05, .03, 0, .005, .1); respirator(vest, .135); break;
     case 'cap': face(); cyl(H, lid, .108, .112, .07, 0, .085, 0); hb(H, lid, .15, .012, .1, 0, .06, .13); break;
     case 'strawhat': face(); cyl(H, lid, .2, .205, .014, 0, .075, 0); { const cr = ball(H, lid, .112, 0, .07, -.004, Math.PI * .5); cr.scale.set(1, .95, 1); } cyl(H, acc, .114, .115, .03, 0, .092, -.004); break;      // wide straw brim, round crown, coloured band
+    case 'reindeer': face(true); ball(H, mk(0x3a78d8, 30), .026, 0, -.02, .112); cyl(H, lid, .17, .175, .016, 0, .085, 0); cyl(H, lid, .118, .112, .17, 0, .17, -.004);
+      { const a = hb(H, white, .1, .022, .008, 0, .17, .112); a.rotation.z = .78; const b2 = hb(H, white, .1, .022, .008, 0, .17, .112); b2.rotation.z = -.78; }
+      for (const x of [-1, 1]) { hr(H, hair, .014, .01, [x * .1, .13, -.01], [x * .2, .25, -.02], 6); hr(H, hair, .01, .007, [x * .16, .2, -.015], [x * .23, .2, .03], 6); hr(H, hair, .01, .007, [x * .18, .225, -.02], [x * .16, .3, -.04], 6); hb(H, tone, .03, .06, .02, x * .112, .0, -.01); } break;      // tall pink hat with a white cross, antlers through the brim, blue nose
+    case 'afrohat': skull(bone); hb(H, black, .042, .04, .02, -.037, .02, .096); hb(H, black, .042, .04, .02, .037, .02, .096); hb(H, black, .02, .026, .02, 0, -.025, .1); for (let i = -2; i <= 2; i++) hb(H, black, .006, .03, .01, i * .016, -.07, .096);
+      { const af = ball(H, hair, .17, 0, .06, -.05); af.scale.set(1.1, 1, 1); } cyl(H, lid, .13, .135, .014, 0, .19, -.02); cyl(H, lid, .09, .085, .15, 0, .265, -.02); cyl(H, acc, .092, .092, .025, 0, .21, -.02); break;      // bare skull, a huge afro and a top hat
     case 'bearhat': face(true); halfCap(lid, .124, -.32); { const bk = ball(H, lid, .122, 0, -.005, -.03); bk.scale.set(1.02, 1.12, .9); } hb(H, lid, .03, .2, .13, -.108, -.03, -.005); hb(H, lid, .03, .2, .13, .108, -.03, -.005); hb(H, lid, .2, .03, .06, 0, -.125, .03);
       for (const x of [-1, 1]) { const e = ball(H, lid, .034, x * .075, .135, -.01); e.scale.set(1, 1.15, .8); } break;      // white hat with two round ears, open at the face
     case 'dog': face(true); for (const x of [-1, 1]) { const e = hb(H, lid, .05, .13, .03, x * .115, -.02, -.01); e.rotation.z = x * -.25; } { const sn = ball(H, tone, .05, 0, -.045, .1); sn.scale.set(1.25, .8, .9); } ball(H, black, .02, 0, -.03, .145);
@@ -3940,7 +3951,7 @@ function getStock() {
   const take = (arr, n) => { const src = arr.slice(), out = []; while (out.length < n && src.length) out.push(src.splice(Math.floor(r() * src.length), 1)[0]); return out; };
   const paid = list => list.map((_, i) => i).filter(i => list[i].price > 0);
   const pinned = BUNDLES.map((b, i) => b.pin ? i : -1).filter(i => i >= 0);
-  stock = { hour, bundles: pinned.concat(take(BUNDLES.map((_, i) => i).filter(i => !BUNDLES[i].pin), 3 - Math.min(2, pinned.length))).slice(0, 3),
+  stock = { hour, bundles: pinned.concat(take(BUNDLES.map((_, i) => i).filter(i => !BUNDLES[i].pin), 3)),
     skins: take(paid(SKINS), 8).sort((x, y) => SKINS[x].price - SKINS[y].price), wraps: take(paid(WRAPS), 8).sort((x, y) => WRAPS[x].price - WRAPS[y].price),
     melees: take(paid(MELEE), 8).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 8).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 8).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 8).sort((x, y) => REVIVES[x].price - REVIVES[y].price) };
   return stock;
