@@ -1,0 +1,9 @@
+{
+  "name": "project-zombie",
+  "version": "1.0.0",
+  "description": "Project Zombie: first-person zombie extraction shooter with online parties, matchmaking and team voice chat.",
+  "private": true,
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
