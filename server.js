@@ -14,6 +14,12 @@ function verifyGoogle(token, done) {              // Google checks the token for
   https.get('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token), r => { let d = ''; r.on('data', c => { d += c; if (d.length > 20000) r.destroy(); }); r.on('end', () => { try { const j = JSON.parse(d); done(r.statusCode === 200 && j.aud === GOOGLE && j.sub && +j.exp * 1000 > Date.now() ? j : null); } catch (e) { done(null); } }); }).on('error', () => done(null));
 }
 
+// ----- player names: each name belongs to one player. Kept in memory and in a small file; a fresh server starts with an empty list -----
+const nameOwner = new Map(), nameOf = new Map(), NAMES = path.join(process.env.PZ_DATA || __dirname, 'names.json');
+const cleanName = x => Array.from(String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()).slice(0, 16).join('');
+try { for (const [uid, name] of JSON.parse(fs.readFileSync(NAMES, 'utf8'))) { nameOf.set(uid, name); nameOwner.set(name.toLowerCase(), uid); } } catch (e) {}
+let saveT = null; const saveNames = () => { if (saveT) return; saveT = setTimeout(() => { saveT = null; fs.writeFile(NAMES, JSON.stringify([...nameOf]), () => {}); }, 2000); };
+
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]); if (p === '/') p = '/index.html';
   if (p === '/config') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify({ google: GOOGLE })); return; }
@@ -25,6 +31,20 @@ const server = http.createServer((req, res) => {
       verifyGoogle(tok, j => { if (!j) return fail(); const uid = 'g' + String(j.sub).replace(/\D/g, '').slice(0, 30); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ uid, name: String(j.name || j.given_name || '').slice(0, 60), sess: sign(uid) })); }); });
     return;
   }
+  if (p === '/name' && req.method === 'POST') {     // one player per name
+    let body = ''; req.on('data', c => { body += c; if (body.length > 4000) req.destroy(); });
+    req.on('end', () => { let j = {}; try { j = JSON.parse(body) || {}; } catch (e) {}
+      let uid = String(j.uid || '').replace(/[^\w-]/g, '').slice(0, 40); const name = cleanName(j.name), key = name.toLowerCase();
+      if (!uid || !name || (uid[0] === 'g' && !checkSess(uid, j.sess))) { res.writeHead(400, { 'content-type': 'application/json' }); res.end('{"ok":false}'); return; }
+      const owner = nameOwner.get(key);
+      if (owner && owner !== uid) { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":false}'); return; }
+      const old = nameOf.get(uid); if (old && old.toLowerCase() !== key) nameOwner.delete(old.toLowerCase());
+      nameOwner.set(key, uid); nameOf.set(uid, name); saveNames();
+      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, name })); });
+    return;
+  }
+  if (p === '/find') { const name = cleanName(new URL(req.url, 'http://x').searchParams.get('name')), uid = nameOwner.get(name.toLowerCase());
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify(uid ? { uid, name: nameOf.get(uid) || name } : {})); return; }
   if (p === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok ' + clients.size); return; }
   const file = path.join(ROOT, path.normalize(p)); if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {

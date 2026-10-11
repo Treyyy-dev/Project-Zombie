@@ -254,13 +254,14 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
 #bpFull{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3}.bp-head{background:rgba(8,17,19,.97)}.bp-left{flex:0 0 62%;min-width:0;min-height:0;display:flex;flex-direction:column;background:rgba(8,17,19,.97)}#game.tall .bp-left{flex:0 0 56%}
 #netBar{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:6;display:flex;gap:10px;align-items:center;background:rgba(8,17,19,.96);border:2px solid var(--sodium);padding:8px 12px;max-width:92%;font-size:15px}#netBar[hidden]{display:none}#netBar .ghost,#netBar .go{padding:6px 12px 5px;font-size:14px;white-space:nowrap}
 #frFull{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3;background:rgba(8,17,19,.97)}.fr-body{flex:1;min-height:0;display:flex}
-.fr-list{flex:0 0 58%;min-width:0;overflow-y:auto;padding:8px 16px 20px;display:flex;flex-direction:column;gap:5px;-webkit-overflow-scrolling:touch}.fr-list h3{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--sodium);font-weight:600;margin:8px 0 2px}
+.fr-left{flex:0 0 58%;min-width:0;display:flex;flex-direction:column}.fr-find{padding:8px 16px 0}#game.tall .fr-left{flex:0 0 55%}
+.fr-list{flex:1;min-height:0;min-width:0;overflow-y:auto;padding:8px 16px 20px;display:flex;flex-direction:column;gap:5px;-webkit-overflow-scrolling:touch}.fr-list h3{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--sodium);font-weight:600;margin:8px 0 2px}
 .fr-row{display:flex;gap:8px;align-items:center;padding:6px 8px;background:var(--panel);border:1px solid var(--line)}.fr-row b{font-weight:600;font-size:16px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fr-row .sub{margin-right:auto;white-space:nowrap}
 .fr-row i{flex:0 0 9px;height:9px;border-radius:50%;background:#4a5456}.fr-row i.on{background:#6dff7a}.fr-row i.busy{background:var(--sodium)}.fr-row .ghost,.fr-row .go{padding:5px 9px 4px;font-size:12px;white-space:nowrap}.fr-row u{text-decoration:none;font-family:var(--data);font-size:11px;background:var(--sodium);color:#12100a;padding:1px 5px}
 .fr-chat{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding:8px 12px 10px;border-left:1px solid var(--line)}.fr-chat .lbl{margin:0}.fr-log{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;font-size:14px}
 .fr-log span{max-width:88%;padding:4px 8px;background:var(--panel);border:1px solid var(--line);overflow-wrap:anywhere;-webkit-user-select:text;user-select:text}.fr-log span.me{align-self:flex-end;border-color:var(--sodium)}.fr-log em{color:var(--ash);font-style:normal;font-size:12px}
 .fr-form{display:flex;gap:6px}.fr-form input{flex:1;min-width:0;background:#050a0b;border:1px solid var(--line);color:var(--bone);font:inherit;font-size:15px;padding:7px 9px;border-radius:0;-webkit-user-select:text;user-select:text}
-.fr-list>.sub{white-space:normal}#partyLbl{color:#6dff7a;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#game.tall .fr-body{flex-direction:column}#game.tall .fr-list{flex:0 0 55%}#game.tall .fr-chat{border-left:0;border-top:1px solid var(--line)}
+.fr-list>.sub{white-space:normal}#partyLbl{color:#6dff7a;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#game.tall .fr-body{flex-direction:column}#game.tall .fr-chat{border-left:0;border-top:1px solid var(--line)}
 #missFull{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3;background:rgba(8,17,19,.97)}
 .bp-head{display:flex;gap:10px;align-items:center;padding:5px 16px;flex-wrap:nowrap}.bp-head>*{flex-shrink:0}.bp-head .sub{flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bp-head .ghost,.bp-head .go{padding:6px 12px 5px;font-size:15px;white-space:nowrap}
 .sh-view.bp-view{justify-content:space-between;background:none;padding:8px 12px 10px}.bp-view .sh-buy{gap:2px}.bp-view .bp-tag{background:rgba(6,13,15,.72);padding:5px 9px;max-width:100%}.bp-view .bp-tag b{font-size:clamp(16px,2.3vw,24px)}.bp-view .bp-tag span{font-size:12px;line-height:1.2;color:var(--ash)}.bp-view .rar{font-size:11px}
@@ -489,7 +490,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
     <div id="frFull" class="full" hidden>
       <div class="sh-top"><h2>Friends</h2><span class="sub" id="frStatus"></span><button class="ghost" id="frClose" type="button" style="margin-left:auto">Close</button></div>
       <div class="fr-body">
-        <div class="fr-list" id="frList"></div>
+        <div class="fr-left"><form class="fr-form fr-find" id="frFindForm" autocomplete="off"><input id="frFind" type="text" maxlength="16" placeholder="Type a player's name to find them" enterkeyhint="search"><button class="go small" type="submit">Find</button></form><div class="fr-list" id="frList"></div></div>
         <div class="fr-chat">
           <p class="lbl" id="frChatWith">Messages</p>
           <div class="fr-log" id="frLog"></div>
@@ -565,6 +566,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <div class="set-row"><span>Motion blur</span><button class="ghost" id="setBlur" type="button" aria-pressed="false">Off</button></div>
           <div class="set-row"><span>Performance mode</span><button class="ghost" id="setPerf" type="button" aria-pressed="false">Off</button></div>
           <p class="set-note">The game lowers its own resolution a little when frames run slow and raises it again when they recover. Performance mode is for when it still stutters: it drops the resolution, turns off shadows and thins out zombies and other players. Frame rate is a limit: the game never runs faster than your screen refreshes. Resolution, shadows and zombie count change straight away; surface detail and reflections change the next time you open the game.</p>
+          <div class="set-row"><span>Lobby music</span><button class="ghost" id="setMus" type="button" aria-pressed="true">On</button></div>
           <div class="set-row"><span>Sound</span><button class="ghost" id="setSound" type="button">Sound on</button></div>
         </div>
         <div class="set-pane" id="setPub" hidden>
@@ -663,7 +665,7 @@ const cfg = { fps: 60, q: isTouch ? 1 : 3, sh: 1, sv: 1, sa: .55, fov: 100, hud:
 try { const c = JSON.parse(localStorage.getItem('deadshift.cfg') || 'null'); if (c && typeof c === 'object') Object.assign(cfg, c); } catch (e) {}
 cfg.q = clamp(cfg.q | 0, 0, 4); cfg.fps = [30, 60, 90, 120].includes(cfg.fps) ? cfg.fps : 60; cfg.fov = clamp(+cfg.fov || 100, 60, 120);
 cfg.sh = clamp(+cfg.sh || 1, .2, 3); cfg.sv = clamp(+cfg.sv || 1, .2, 3); cfg.sa = clamp(+cfg.sa || .55, .1, 1.5);
-if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.br = cfg.br === undefined ? 1 : clamp(+cfg.br || 1, .5, 2); cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
+if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.mus = cfg.mus === 0 ? 0 : 1; cfg.br = cfg.br === undefined ? 1 : clamp(+cfg.br || 1, .5, 2); cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
 const saveCfg = () => { try { localStorage.setItem('deadshift.cfg', JSON.stringify(cfg)); } catch (e) {} };
 const low = cfg.q <= 1;                    // simpler materials on the two lowest quality levels
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -2491,6 +2493,26 @@ function sNoise(o) {                    // {dur,f0,f1,gain,type,q,delay,echo,pan
   const g = ac.createGain(); g.gain.setValueAtTime(o.gain, t); g.gain.exponentialRampToValueAtTime(.001, t + o.dur);
   s.connect(f); f.connect(g); out(g, o); s.start(t, Math.random(), o.dur + .05);
 }
+let musGain = null, musLP = null, musNext = 0, musStep = 0;
+const MUS = { bpm: 84, chords: [[57, 60, 64, 67], [53, 57, 60, 65], [48, 55, 60, 64], [52, 55, 59, 64]], arp: [0, 1, 2, 1, 3, 2, 1, 2] };      // Am7, Fmaj, C, Em7: slow and uneasy
+const mhz = n => 440 * Math.pow(2, (n - 69) / 12);
+function musNote(f, t, dur, type, gain, att, dest) { const os = ac.createOscillator(), g = ac.createGain(); os.type = type; os.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + att); g.gain.exponentialRampToValueAtTime(.0005, t + dur); os.connect(g); g.connect(dest); os.start(t); os.stop(t + dur + .05); }
+function musicTick() {                           // lobby music: a pad, a bass line, a soft arpeggio and a slow kick, scheduled a little ahead of time
+  if (!ac || !master) return;
+  const want = !!cfg.mus && !muted && (state === 'lobby' || state === 'name' || state === 'hudedit' || state === 'result');
+  if (!musGain) { if (!want) return; musGain = ac.createGain(); musGain.gain.value = 0; musLP = ac.createBiquadFilter(); musLP.type = 'lowpass'; musLP.frequency.value = 1500; musLP.Q.value = .6; musLP.connect(musGain); musGain.connect(master); }
+  musGain.gain.setTargetAtTime(want ? .55 : 0, ac.currentTime, want ? .8 : .25);
+  if (!want) { musNext = 0; return; }
+  const sd = 60 / MUS.bpm / 4; if (!musNext || musNext < ac.currentTime - .5) { musNext = ac.currentTime + .08; musStep = 0; }
+  while (musNext < ac.currentTime + .4) {
+    const st = musStep % 64, bar = Math.floor(st / 16), s16 = st % 16, ch = MUS.chords[bar], t = musNext;
+    if (s16 === 0) for (let i = 0; i < 3; i++) { musNote(mhz(ch[i] - 12) * (1 + (i - 1) * .003), t, sd * 17, 'sawtooth', .035, .5, musLP); musNote(mhz(ch[i]), t, sd * 17, 'triangle', .03, .7, musLP); }      // pad
+    if (s16 === 0 || s16 === 6 || s16 === 8 || s16 === 14) musNote(mhz(ch[0] - 24), t, sd * (s16 % 8 === 0 ? 5 : 2), 'triangle', .16, .01, musLP);                                                       // bass
+    if (s16 % 2 === 0) { const k = MUS.arp[(s16 / 2) | 0]; musNote(mhz(ch[k] + (Math.floor(musStep / 64) % 2 && s16 >= 8 ? 12 : 0)), t, sd * 2.6, 'triangle', .05, .01, musLP); }                       // arpeggio
+    if (s16 === 0 || s16 === 8 || (bar === 3 && s16 === 14)) { const os = ac.createOscillator(), g = ac.createGain(); os.frequency.setValueAtTime(105, t); os.frequency.exponentialRampToValueAtTime(42, t + .16); g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .22); os.connect(g); g.connect(musGain); os.start(t); os.stop(t + .25); }   // kick
+    musNext += sd; musStep++;
+  }
+}
 function sTone(o) {                     // {f0,f1,dur,gain,type,delay,echo,pan,attack}
   if (!ac) return; const t = ac.currentTime + (o.delay || 0);
   const os = ac.createOscillator(); os.type = o.type || 'sine';
@@ -3426,6 +3448,7 @@ function botPose(b) {
   return mixP(idlePose(b.t), fz < 3 ? poseAt({ k: FIDGETS[(b.slot + Math.floor(b.t / 11)) % FIDGETS.length] }, fz) : {}, { ux: -.25 * b.flinch, hx: -.2 * b.flinch });
 }
 function updateBots(dt) {
+  camera.getWorldDirection(vN); const cfx = vN.x, cfz = vN.z, cpx = camera.position.x, cpz = camera.position.z;
   for (const t of tracers) if (t.life > 0) { t.life -= dt; if (t.life <= 0) t.m.visible = false; }
   let built = 0;
   for (let i = bots.length - 1; i >= 0; i--) {
@@ -3451,7 +3474,12 @@ function updateBots(dt) {
       if (b.fin) continue;
       if (near) pose = botPose(b);
     } else pose = mixP(idlePose(b.t), { ux: -.25 * b.flinch, hx: -.2 * b.flinch });
-    if (b.g && near) { if (pose && b.rig) applyPose(b.rig, pose); b.g.position.set(b.x, b.y, b.z); b.g.rotation.y = b.yaw; }
+    if (b.g && near) {
+      const ahead = (b.x - cpx) * cfx + (b.z - cpz) * cfz > -3;                                  // behind the camera: keep it in place, pose it only now and then
+      if (pose && b.rig && (ahead ? dP < 45 || ((frameN + i) & 1) === 0 : ((frameN + i) & 7) === 0)) applyPose(b.rig, pose);
+      b.g.position.set(b.x, b.y, b.z); b.g.rotation.y = b.yaw;
+      const sm = b.g.userData.sm, on = dP < 30; if (sm && sm.length && b.g.userData.shOn !== on) { b.g.userData.shOn = on; for (const m of sm) m.castShadow = on; }
+    }
   }
   if (P.revB) {                                   // the player reviving a teammate: stay close for ten seconds
     const b = P.revB;
@@ -3607,7 +3635,7 @@ const LOADT = 60, CAB = 63.5, CABY = 300, SIT = { y: -.5, hLx: -1.5, kL: 1.5, hR
 const cabLight = new THREE.PointLight(0xffd2a0, 0, 10, 1.4); cabLight.visible = false; scene.add(cabLight);
 const mates = [];                               // the other jumpers sharing your bench
 const blobGeo = new THREE.CircleGeometry(.55, 20), blobMat = new THREE.MeshBasicMaterial({ map: glowTex, color: 0x000000, transparent: true, opacity: .55, depthWrite: false });
-function mergeChar(root) {                      // roughly 100 small meshes per character become about 30: far less work for a phone
+function mergeChar(root, shadow) {                      // roughly 100 small meshes per character become about 30: far less work for a phone
   const groups = []; root.traverse(o => { if (o.isGroup) groups.push(o); });
   for (const G of groups) {
     const by = new Map();
@@ -3617,7 +3645,7 @@ function mergeChar(root) {                      // roughly 100 small meshes per 
       let a = by.get(ch.material); if (!a) by.set(ch.material, a = []); a.push(ch);
     }
     for (const [mat, list] of by) {
-      if (list.length < 2) { list[0].castShadow = false; continue; }
+      if (list.length < 2) { list[0].castShadow = !!shadow && list[0].castShadow; continue; }
       const pos = [], nor = [], uvs = [];
       for (const m of list) {
         const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrix);
@@ -3628,14 +3656,16 @@ function mergeChar(root) {                      // roughly 100 small meshes per 
       }
       const ng = new THREE.BufferGeometry();
       ng.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); ng.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); ng.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      G.add(new THREE.Mesh(ng, mat));
+      const nm = new THREE.Mesh(ng, mat); nm.castShadow = !!shadow; G.add(nm);
     }
   }
 }
 function mkChar(si, wi) {
   const g = new THREE.Group(); buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[si], WRAPS[wi], false); g.userData.skin = si;
-  if (cfg.perf || cfg.q <= 1) {             // on the two lowest quality levels each character is baked into a third as many pieces
-     try { mergeChar(g); } catch (e) {} g.traverse(o => { if (o.isMesh) o.castShadow = false; }); }
+  const lite = cfg.perf || cfg.q <= 1;        // every character is baked into about a third as many pieces: it looks the same and is far less work for a phone
+  try { mergeChar(g, !lite); } catch (e) {}
+  if (lite) g.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  g.userData.sm = []; g.traverse(o => { if (o.isMesh && o.castShadow) g.userData.sm.push(o); }); g.userData.shOn = true;
   const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = .025; sh.renderOrder = 1; g.add(sh);     // soft contact shadow
   scene.add(g); return g;
 }
@@ -4178,7 +4208,7 @@ $('acctOut').addEventListener('click', () => { try { localStorage.removeItem('de
 /* ---------- own-server build (GitHub + Render): the same room calls, carried over a WebSocket to server.js ---------- */
 if (window.PZ_SERVER && !window.claude) (() => {
   let uidv = ''; try { uidv = localStorage.getItem('deadshift.uid') || ''; if (!uidv) { uidv = 'u' + Math.random().toString(36).slice(2, 12); localStorage.setItem('deadshift.uid', uidv); } } catch (e) { uidv = 'u' + Math.random().toString(36).slice(2, 12); }
-  const guest = uidv; if (acct) uidv = acct.uid;
+  const guest = uidv; if (acct) uidv = acct.uid; window.PZ_UID = uidv;
   const rooms = new Map(), EMPTY = Object.freeze([]); let ws = null, open = false, myPeer = '', retry = 1000;
   const send = o => { if (open) try { ws.send(JSON.stringify(o)); } catch (e) {} };
   function mk(name) {
@@ -4530,6 +4560,14 @@ const net = (() => {
     dms.push({ to: id, x: text, t: Date.now(), k: ++dmK }); dms = dms.slice(-3); (chats[id] || (chats[id] = [])).push({ m: 1, x: text, t: Date.now() }); keep(); N.pub(); renderFriends(); }
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
   const btn = (cls, text, fn) => { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', fn); return b; };
+  let findQ = '', findHit = null, findBusy = false, findT = 0;
+  function findRun() {                             // online players match as you type; the server also knows players who are offline right now
+    findHit = null; const q = findQ.trim(); clearTimeout(findT); findBusy = false;
+    if (q && window.PZ_SERVER) { findBusy = true; findT = setTimeout(() => { fetch('/find?name=' + encodeURIComponent(q)).then(r => r.json()).then(a => { if (findQ.trim() === q) { findBusy = false; findHit = a && a.uid ? { uid: clean(a.uid, 40), name: clean(a.name, 16) } : null; renderFriends(); } }).catch(() => { findBusy = false; renderFriends(); }); }, 350); }
+    renderFriends();
+  }
+  $('frFind').addEventListener('input', () => { findQ = $('frFind').value; findRun(); });
+  $('frFindForm').addEventListener('submit', e => { e.preventDefault(); findQ = $('frFind').value; findRun(); try { $('frFind').blur(); } catch (x) {} });
   function renderFriends() {
     if (!N.open) return; const host = $('frList'), top = host.scrollTop; host.innerHTML = '';
     const others = [...N.peers.values()];
@@ -4548,11 +4586,13 @@ const net = (() => {
       if (friend) r.append(btn('ghost', 'Remove', () => { delete friends[id]; keep(); renderFriends(); }));
       host.append(r); };
     const fl = Object.keys(friends).sort((a, b) => (N.peers.has(b) - N.peers.has(a)) || (friends[a] < friends[b] ? -1 : 1));
-    host.append(el('h3', '', 'Friends · ' + fl.length)); if (!fl.length) host.append(el('span', 'sub', 'No friends yet. Add players from the list below while they are online.'));
+    host.append(el('h3', '', 'Friends · ' + fl.length)); if (!fl.length) host.append(el('span', 'sub', 'No friends yet. Type a player\u2019s name in the box above to find and add them.'));
     for (const id of fl) row(id, (N.peers.get(id) || {}).n || friends[id] || 'Player', true);
-    const rest = others.filter(p => friends[p.id] === undefined); host.append(el('h3', '', 'Online now · ' + rest.length));
-    if (!rest.length) host.append(el('span', 'sub', N.on ? 'Nobody else has the game open right now. Players appear here when they open it.' : 'Other players show up here when online play is available.'));
-    for (const p of rest) row(p.id, p.n, false);
+    const q = findQ.trim().toLowerCase();
+    if (q) { const hits = others.filter(p => p.n.toLowerCase().includes(q)); host.append(el('h3', '', 'Search · ' + findQ.trim()));
+      for (const p of hits) row(p.id, p.n, friends[p.id] !== undefined);
+      if (findHit && !hits.some(p => p.id === findHit.uid) && findHit.uid !== N.id) row(findHit.uid, findHit.name, friends[findHit.uid] !== undefined);
+      if (!hits.length && !(findHit && findHit.uid !== N.id)) host.append(el('span', 'sub', findBusy ? 'Searching…' : 'Nobody found with that name. Check the spelling: it has to match their player name.')); }
     host.scrollTop = top;
     const log = $('frLog'); log.innerHTML = ''; $('frChatWith').textContent = chatWith ? 'Messages · ' + nameOf(chatWith) : 'Messages';
     const on = !!(chatWith && N.peers.get(chatWith)); $('frMsg').disabled = !chatWith; $('frSend').disabled = !chatWith; $('frMsg').placeholder = !chatWith ? 'Pick a friend to message' : on ? 'Message ' + nameOf(chatWith) : nameOf(chatWith) + ' is offline';
@@ -4786,7 +4826,7 @@ function renderSettings(tab) {
   slider('slBr', 'br', .5, 2, .05, v => Math.round(v * 100) + '%', () => applyBright());
   slider('slFov', 'fov', 60, 120, 1, v => v + '°', resize);
   slider('slH', 'sh', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slV', 'sv', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slA', 'sa', .1, 1.5, .05, v => v.toFixed(2) + '×');
-  fillKeys($('setKeys')); $('setSound').textContent = muted ? 'Sound off' : 'Sound on';
+  fillKeys($('setKeys')); $('setSound').textContent = muted ? 'Sound off' : 'Sound on'; $('setMus').textContent = cfg.mus ? 'On' : 'Off'; $('setMus').setAttribute('aria-pressed', String(!!cfg.mus));
   $('setBlur').textContent = cfg.blur ? 'On' : 'Off'; $('setBlur').setAttribute('aria-pressed', String(!!cfg.blur));
   $('setPerf').textContent = cfg.perf ? 'On' : 'Off'; $('setPerf').setAttribute('aria-pressed', String(!!cfg.perf));
 }
@@ -4855,11 +4895,23 @@ function showMenu(kind) {
   if (!over) $('vignette').style.opacity = 0;
 }
 function goTitle() { clearWorld(); setMap(false); setField(true); P.x = P.z = 0; state = 'title'; menuT = 0; hero.visible = false; lobbyEl.hidden = true; resize(); showMenu('title'); }
+let nameBusy = false;
+function nameGate() {                            // on the game's own site a name belongs to one player: ask the server before using it
+  if (!window.PZ_SERVER || !window.PZ_UID) { enterLobby(); return; }
+  if (nameBusy) return;
+  let want = Array.from($('inName').value.trim()).slice(0, 16).join('');
+  if (!want) { want = 'Player' + Math.floor(1000 + Math.random() * 9000); $('inName').value = want; }
+  nameBusy = true; const btn = $('btnGo'), was = btn.textContent; btn.textContent = 'Checking…';
+  const done = ok => { nameBusy = false; btn.textContent = was;
+    if (ok) { enterLobby(); return; }
+    state = 'name'; lobbyEl.hidden = true; nameTag.visible = false; resize(); showMenu('name'); $('oLede').textContent = '"' + want + '" is already taken by another player. Pick a different name.'; try { $('inName').focus(); $('inName').select(); } catch (e) {} };
+  fetch('/name', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uid: window.PZ_UID, name: want, sess: acct ? acct.sess : '' }) }).then(r => r.json()).then(a => done(!a || a.ok !== false)).catch(() => done(true));
+}
 function goAction() {
-  if (state === 'title' || state === 'name') enterLobby(); else if (state === 'lobby') play(true); else if (state === 'pause') play(false); else if (state === 'over') play(true);
+  if (state === 'title' || state === 'name') nameGate(); else if (state === 'lobby') play(true); else if (state === 'pause') play(false); else if (state === 'over') play(true);
 }
 $('btnGo').addEventListener('click', goAction);
-$('nameForm').addEventListener('submit', e => { e.preventDefault(); if (state === 'name') enterLobby(); });
+$('nameForm').addEventListener('submit', e => { e.preventDefault(); if (state === 'name') nameGate(); });
 $('btnAlt').addEventListener('click', () => { if (state === 'name') { $('inName').value = savedName; enterLobby(); } else if (state === 'pause') play(true); else if (state === 'over') enterLobby(); });
 $('btnQuit').addEventListener('click', () => { if (state === 'pause') enterLobby(); });
 for (const id of ['btnSound', 'lbSound']) $(id).addEventListener('click', () => {
@@ -5136,6 +5188,7 @@ function placeCamera(dt) {
   if (w.pump) { pumpT = Math.max(0, pumpT - dt); w.pump.position.z = -.25 + (pumpT > 0 && pumpT < .36 ? Math.sin((1 - pumpT / .36) * Math.PI) * .07 : 0); }
 }
 function updateZombies(dt, alive) {
+  if (!low && zombies.length) { const Z = zombies[frameN % zombies.length], on = Math.hypot(Z.x - P.x, Z.z - P.z) < 26; if (Z.shOn !== on) { Z.shOn = on; for (const m of Z.parts) m.castShadow = on; } }
   const k8 = Math.min(1, dt * 8), k5 = Math.min(1, dt * 5), k12 = Math.min(1, dt * 12);
   for (let i = zombies.length - 1; i >= 0; i--) {
     const Z = zombies[i], g = Z.g, sc = Z.sc;
@@ -5596,6 +5649,7 @@ try {
   gg.putImageData(id, 0, 0); $('grain').style.backgroundImage = 'url(' + gc.toDataURL() + ')';
 } catch (e) {}
 $('setBlur').addEventListener('click', () => { cfg.blur = cfg.blur ? 0 : 1; saveCfg(); renderSettings('game'); });
+$('setMus').addEventListener('click', () => { cfg.mus = cfg.mus ? 0 : 1; saveCfg(); renderSettings('game'); });
 $('setPerf').addEventListener('click', () => { cfg.perf = cfg.perf ? 0 : 1; saveCfg(); applyQuality(); renderSettings('game'); });
 function applyQuality() {                       // performance mode: lowest resolution, no shadows, thin rain, fewer and lighter characters
   const q = cfg.q, pf = !!cfg.perf;
@@ -5615,16 +5669,17 @@ function frame(now) {
   lastDraw = now;
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   if ((shopOpen || loadOpen || bpOpen) && thumbQueue.length) { const q = thumbQueue.shift(); renderThumb(q[0], q[1]); }
-  net.tick(dt);
-  frameN++; renderer.shadowMap.autoUpdate = cfg.q >= 3; if (cfg.q < 3) renderer.shadowMap.needsUpdate = (frameN & 1) === 0;
+  net.tick(dt); musicTick();
+  frameN++; { const calm = cfg.q >= 3 && dyn >= .95; renderer.shadowMap.autoUpdate = calm; if (!calm) renderer.shadowMap.needsUpdate = dyn < .7 ? frameN % 3 === 0 : (frameN & 1) === 0; }
   if (state === 'play' || state === 'spec') {     // automatic resolution: drop a notch when the frame rate sags, creep back up when there is room
     ema += (dt - ema) * .06; dynT += dt; dynHold -= dt; const want = 1 / Math.min(cfg.fps, 60);
-    if (dynT > 2) { dynT = 0;
-      if (ema > want * 1.3 && dyn > .45) { dyn = Math.max(.45, dyn - .12); dynHold = 20; resize(); }
-      else if (ema < want * 1.08 && dyn < 1 && dynHold <= 0) { dyn = Math.min(1, dyn + .08); dynHold = 8; resize(); } }
+    if (dynT > 1.2) { dynT = 0;
+      if (ema > want * 1.55 && dyn > .4) { dyn = Math.max(.4, dyn - .2); dynHold = 20; resize(); }           // badly behind: take a big step down at once
+      else if (ema > want * 1.22 && dyn > .4) { dyn = Math.max(.4, dyn - .1); dynHold = 20; resize(); }
+      else if (ema < want * 1.06 && dyn < 1 && dynHold <= 0) { dyn = Math.min(1, dyn + .06); dynHold = 8; resize(); } }
   }
   { let want = 0;                                 // motion blur: the picture softens while the view is whipping round or you are moving fast
-    if (cfg.blur && !cfg.perf && (state === 'play' || state === 'inv')) want = clamp(turnV * .16 + slideK * .55 + sprintK * .22 + (P.drive ? Math.abs(P.drive.v) * .05 : 0) + (P.air ? .2 : 0) - .12, 0, 1);
+    if (cfg.blur && !cfg.perf && dyn >= .9 && (state === 'play' || state === 'inv')) want = clamp(turnV * .16 + slideK * .55 + sprintK * .22 + (P.drive ? Math.abs(P.drive.v) * .05 : 0) + (P.air ? .2 : 0) - .12, 0, 1);
     blurK += (want - blurK) * Math.min(1, dt * 10); const px = blurK < .06 ? '' : (Math.round(blurK * 6) / 2).toFixed(1) + 'px';
     if (px !== blurPx) { blurPx = px; canvas.classList.toggle('mb', !!px); if (px) canvas.style.setProperty('--mb', px); } }
   if (state === 'play' || state === 'inv') update(dt); else if (state === 'intro') updateCut(dt); else if (state === 'outro') updateOutro(dt); else if (state === 'spec') updateSpec(dt); else if (state !== 'pause' && state !== 'inv' && state !== 'map') idle(dt);
