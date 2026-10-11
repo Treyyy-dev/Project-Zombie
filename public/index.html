@@ -1993,6 +1993,11 @@ const REVIVES = [
   RV('Beta Lift', 0, 2.2, t => { const k = clamp((t % 3.3) / 2.2, 0, 1), e = k * k * (3 - 2 * k); const o = {}; for (const q in RKN) o[q] = RKN[q] * (1 - e); return Object.assign(o, { sLx: -1.2 - e * .8, sRx: -1.2 - e * .8, eL: -.5, eR: -.5, ux: (1 - e) * .55 - e * .15 }); }, 'p');
   RV('Beta Guardian', 0, 1, t => ({ sRx: -1.1, eR: -.3, sLx: -1.15, sLz: -.25, eL: -.5, uy: Math.sin(t * .9) * .9, hy: Math.sin(t * .9) * .3, y: -.12, hLx: -.4, kL: .7, hRx: .1, kR: .4 }), 'p');
   RV('Beta Spark', 0, 1.9, t => { const c = t % 2, k = c > 1.5 ? Math.sin((c - 1.5) / .5 * Math.PI) : 0; return mixP(RKN, { sLx: -2.6 + k * 1.6, sRx: -2.6 + k * 1.6, sLz: .2, sRz: -.2, ux: .45 + k * .35, y: -.42 - k * .05, hx: .3 }); }, 'p');
+  // ----- Adventure Series: a fan-made set in the style of the cartoon -----
+  SK('Finn', 900, 0x3aa0ea, 0x2458b8, 'bearhat', { ld: 0xf6f6f2, t: 0xf4cdae, h: 0xe9d27a, x: 'backpack shorts socks', a: 0x66c23c, b: 0x101010, g: 's' });
+  SK('Jake', 900, 0xf2a92a, 0xf2a92a, 'dog', { ld: 0xd98f1c, t: 0xf2a92a, h: 0x1a1208, b: 0xf2a92a, g: 0xf2a92a });
+  SK('Marceline', 900, 0x5a5e68, 0x24304a, 'bare', { hs: 'long', fem: 1, t: 0xbcc6d0, h: 0x0b0b10, b: 0xa51c1c, g: 's', x: 'buckle' });
+  WR('Ooo Sky', 300, { col: 0x4ab0f0 }); ML("Hero's Sword", 800, 21, 120, .55, 2.5, 2, .4, 'back', '120 damage · long, hits two');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2000,6 +2005,7 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Adventure Series', pin: 1, skins: ['Finn', 'Jake', 'Marceline'].map(sI), wrap: wI('Ooo Sky'), melee: mI("Hero's Sword"), intro: Math.max(0, aI('Victory Jump')), fin: fI('Flash Kick'), rev: rI('Pep Talk') });
 }
 // ----- battle pass: Season Beta. 100 free tiers and 100 paid ones, 100 XP a tier -----
 const BP_COST = 10000, BP_XP = 100, BP = { free: [], paid: [] };
@@ -2056,11 +2062,13 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     const onT = (mat, w, h, d, x, y, z) => hb(hp, mat, w, h, d, x - H0[0], y - H0[1], z - H0[2]);       // rides the thigh
     const onS = (mat, w, h, d, x, y, z) => hb(kn, mat, w, h, d, x - K0[0], y - K0[1], z - K0[2]);       // rides the shin
     hr(hp, trousers, .09, .075, [0, 0, 0], [K0[0] - H0[0], K0[1] - H0[1], K0[2] - H0[2]], 8);
-    hr(kn, trousers, .07, .058, [0, 0, 0], [s * .14 - K0[0], .12 - K0[1], s * .02 - K0[2]], 8);
+    hr(kn, has('shorts') ? tone : trousers, .07, .058, [0, 0, 0], [s * .14 - K0[0], .12 - K0[1], s * .02 - K0[2]], 8);
+    if (has('shorts')) onT(trousers, .17, .05, .17, s * .122, .56, .02);                           // hem of the shorts
+    if (has('socks')) { onS(white, .125, .16, .125, s * .139, .2, .025 + s * .02); onS(white, .13, .03, .13, s * .139, .285, .025 + s * .02); }
     onS(boots, .1, .13, .28, s * .14, .065, .05 + s * .02).rotation.y = s * .12;
     if (!low) {                                   // soles, toe caps, laces, knees, pockets
       onS(black, .108, .028, .295, s * .14, .012, .05 + s * .02).rotation.y = s * .12; onS(boots, .096, .07, .08, s * .152, .1, .17 + s * .02).rotation.y = s * .12; onS(black, .07, .012, .1, s * .145, .136, .09 + s * .02).rotation.y = s * .12;
-      onS(trousers, .1, .1, .05, s * .128, .5, .085 + s * .02); onT(trousers, .02, .13, .11, s * .195, .76, .0); onS(trousers, .135, .03, .135, s * .138, .15, .03 + s * .02);
+      if (!has('shorts')) { onS(trousers, .1, .1, .05, s * .128, .5, .085 + s * .02); onS(trousers, .135, .03, .135, s * .138, .15, .03 + s * .02); } onT(trousers, .02, .13, .11, s * .195, .76, .0);
     }
     if (has('shin')) onS(vest, .1, .3, .06, s * .135, .33, .08 + s * .02);
     else if (has('kit')) onT(vest, .07, .12, .1, s * .19, .72, .02);
@@ -2104,7 +2112,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (has('stars')) for (const [x, y] of [[-.1, 1.34], [.07, 1.2], [-.03, 1.1], [.11, 1.42]]) hb(heroUp, gold, .03, .03, .006, x, y, .136).rotation.z = .78;
   if (has('scarf')) cyl(heroUp, acc, .09, .1, .07, 0, 1.51, .005);
   if (has('cape')) hb(heroUp, acc, .44, 1.0, .02, 0, 1.0, -.19).rotation.x = .09;
-  const bareFace = ['cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
+  const bareFace = ['bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
   hr(heroUp, S.hd === 'hood' || S.hd === 'astro' ? uni : S.hd === 'skull' ? bone : S.hd === 'robot' || S.hd === 'knight' ? steel : bareFace ? tone : black, .055, .05, [0, 1.48, 0], [0, 1.56, .005], 8);   // neck
 
   // ----- firearm held at the low ready, muzzle down to the left -----
@@ -2158,6 +2166,10 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   switch (S.hd) {
     case 'helmet': skull(black); halfCap(lid, .128).scale.set(1, 1.05, 1.1); hb(H, lid, .262, .02, .29, 0, .02, 0); hb(H, lens, .17, .05, .03, 0, .005, .1); respirator(vest, .135); break;
     case 'cap': face(); cyl(H, lid, .108, .112, .07, 0, .085, 0); hb(H, lid, .15, .012, .1, 0, .06, .13); break;
+    case 'bearhat': face(true); halfCap(lid, .124, -.32); { const bk = ball(H, lid, .122, 0, -.005, -.03); bk.scale.set(1.02, 1.12, .9); } hb(H, lid, .03, .2, .13, -.108, -.03, -.005); hb(H, lid, .03, .2, .13, .108, -.03, -.005); hb(H, lid, .2, .03, .06, 0, -.125, .03);
+      for (const x of [-1, 1]) { const e = ball(H, lid, .034, x * .075, .135, -.01); e.scale.set(1, 1.15, .8); } break;      // white hat with two round ears, open at the face
+    case 'dog': face(true); for (const x of [-1, 1]) { const e = hb(H, lid, .05, .13, .03, x * .115, -.02, -.01); e.rotation.z = x * -.25; } { const sn = ball(H, tone, .05, 0, -.045, .1); sn.scale.set(1.25, .8, .9); } ball(H, black, .02, 0, -.03, .145);
+      for (const x of [-1, 1]) { ball(H, white, .03, x * .04, .03, .092); ball(H, black, .014, x * .04, .03, .118); } break;      // floppy ears, a wide muzzle, big round eyes
     case 'hood': skull(black); ball(H, lid, .137, 0, .005, -.005).scale.set(1, 1.17, 1.08); hb(H, lens, .19, .1, .03, 0, .015, .135); respirator(black, .17); break;
     case 'visor': { skull(black); ball(H, lid, .134, 0, .01, -.005, Math.PI * .58).scale.set(1, 1.1, 1.1); hb(H, lid, .2, .1, .06, 0, -.07, -.11);
       hb(H, Phong({ color: 0x0a1014, shininess: 160, specular: 0xc8dce4, transparent: true, opacity: .7 }), .2, .13, .012, 0, -.015, .138).castShadow = false; break; }
@@ -3919,7 +3931,8 @@ function getStock() {
   const r = () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const take = (arr, n) => { const src = arr.slice(), out = []; while (out.length < n && src.length) out.push(src.splice(Math.floor(r() * src.length), 1)[0]); return out; };
   const paid = list => list.map((_, i) => i).filter(i => list[i].price > 0);
-  stock = { hour, bundles: take(BUNDLES.map((_, i) => i), 3),
+  const pinned = BUNDLES.map((b, i) => b.pin ? i : -1).filter(i => i >= 0);
+  stock = { hour, bundles: pinned.concat(take(BUNDLES.map((_, i) => i).filter(i => !BUNDLES[i].pin), 3 - Math.min(2, pinned.length))).slice(0, 3),
     skins: take(paid(SKINS), 8).sort((x, y) => SKINS[x].price - SKINS[y].price), wraps: take(paid(WRAPS), 8).sort((x, y) => WRAPS[x].price - WRAPS[y].price),
     melees: take(paid(MELEE), 8).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 8).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 8).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 8).sort((x, y) => REVIVES[x].price - REVIVES[y].price) };
   return stock;
