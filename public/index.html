@@ -560,6 +560,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
         <div class="set-pane" id="setGame">
           <div class="set-row"><span>Frame rate</span><div class="seg" id="segFps"></div></div>
           <div class="set-row"><span>Quality</span><div class="seg" id="segQ"></div></div>
+          <div class="set-row"><span>Brightness</span><div class="slw" id="slBr"></div></div>
           <div class="set-row"><span>Motion blur</span><button class="ghost" id="setBlur" type="button" aria-pressed="false">Off</button></div>
           <div class="set-row"><span>Performance mode</span><button class="ghost" id="setPerf" type="button" aria-pressed="false">Off</button></div>
           <p class="set-note">The game lowers its own resolution a little when frames run slow and raises it again when they recover. Performance mode is for when it still stutters: it drops the resolution, turns off shadows and thins out zombies and other players. Frame rate is a limit: the game never runs faster than your screen refreshes. Resolution, shadows and zombie count change straight away; surface detail and reflections change the next time you open the game.</p>
@@ -659,7 +660,7 @@ const cfg = { fps: 60, q: isTouch ? 1 : 3, sh: 1, sv: 1, sa: .55, fov: 100, hud:
 try { const c = JSON.parse(localStorage.getItem('deadshift.cfg') || 'null'); if (c && typeof c === 'object') Object.assign(cfg, c); } catch (e) {}
 cfg.q = clamp(cfg.q | 0, 0, 4); cfg.fps = [30, 60, 90, 120].includes(cfg.fps) ? cfg.fps : 60; cfg.fov = clamp(+cfg.fov || 100, 60, 120);
 cfg.sh = clamp(+cfg.sh || 1, .2, 3); cfg.sv = clamp(+cfg.sv || 1, .2, 3); cfg.sa = clamp(+cfg.sa || .55, .1, 1.5);
-if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
+if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.br = cfg.br === undefined ? 1 : clamp(+cfg.br || 1, .5, 2); cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
 const saveCfg = () => { try { localStorage.setItem('deadshift.cfg', JSON.stringify(cfg)); } catch (e) {} };
 const low = cfg.q <= 1;                    // simpler materials on the two lowest quality levels
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -683,7 +684,7 @@ const FOG = 0x0a1517;
 renderer.setClearColor(FOG);
 renderer.autoClear = false;
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; let expBase = 1.05; const applyBright = () => { renderer.toneMappingExposure = expBase * cfg.br; }; applyBright();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
@@ -3563,7 +3564,7 @@ function setWeather(k) {                        // null puts the usual wet night
   hemi.color.setHex(w.hc); hemi.groundColor.setHex(w.hg); hemiBase = w.hi; hemi.intensity = w.hi; moonLight.color.setHex(w.sc); moonLight.intensity = w.si;
   scene.fog.color.setHex(w.fc).convertSRGBToLinear(); scene.fog.density = w.fd; clearCol = w.fc; renderer.setClearColor(clearCol, 1); viewR = w.view;
   torch.visible = !w.dome;                        // no torch needed in daylight: one light fewer for every pixel
-  sky.visible = moon.visible = halo.visible = !!w.night; renderer.toneMappingExposure = w.dome ? 1.14 : 1.05;
+  sky.visible = moon.visible = halo.visible = !!w.night; expBase = w.dome ? 1.14 : 1.05; applyBright();
   if (town.skyMat) { town.skyMat.map = w.dome ? town.skyDay : town.skyNight; town.skyMat.needsUpdate = true; }
   if (w.dome && !dayDome) {
     const st = tex(16, 256, (g, wd, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#2f78d0'); gr.addColorStop(.42, '#7fb6e8'); gr.addColorStop(.5, '#d6ebf7'); gr.addColorStop(1, '#d6ebf7'); g.fillStyle = gr; g.fillRect(0, 0, wd, h); });
@@ -4610,6 +4611,7 @@ function renderSettings(tab) {
   slider('slVV', 'vv', 0, 1, .05, v => Math.round(v * 100) + '%', () => voice.apply()); $('pubStatus').textContent = voice.status();
   seg('segFps', 'fps', [[30, '30'], [60, '60'], [90, '90'], [120, '120']]);
   seg('segQ', 'q', [[0, 'Very low'], [1, 'Low'], [2, 'Medium'], [3, 'High'], [4, 'Very high']], applyQuality);
+  slider('slBr', 'br', .5, 2, .05, v => Math.round(v * 100) + '%', () => applyBright());
   slider('slFov', 'fov', 60, 120, 1, v => v + '°', resize);
   slider('slH', 'sh', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slV', 'sv', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slA', 'sa', .1, 1.5, .05, v => v.toFixed(2) + '×');
   fillKeys($('setKeys')); $('setSound').textContent = muted ? 'Sound off' : 'Sound on';
