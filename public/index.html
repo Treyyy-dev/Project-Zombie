@@ -2010,7 +2010,7 @@ const REVIVES = [
   WR('Sakura Pink', 300, { col: 0xf7a8c4 }); ML('Soul Cane', 900, 5, 112, .44, 2.4, 2, .2, 'hip', '112 damage · very fast sword');
   // ----- Going Merry Series: the rest of the fan-made pirate crew -----
   SK('Franky', 900, 0xc8362a, 0x23356e, 'bare', { hs: 'pomp', t: 0xe0a878, h: 0x2a9ad8, f: 'shades steelnose', x: 'shorts stars pads', a: 0xd8b024, b: 0x1c1c1c, g: 0x9aa2a8, sz: 1.1 });
-  SK('Usopp', 900, 0x6a4a2a, 0x7a5a32, 'bandana', { hs: 'curly', ld: 0x9aa23a, t: 0xb07a4e, h: 0x0e0c0c, f: 'goggles longnose', x: 'kit backpack', a: 0xc8a23a, b: 0x3a2a1c, g: 's' });
+  SK('Usopp', 900, 0x6a4a2a, 0x7a5a32, 'bandana', { hs: 'curly', ld: 0x9aa23a, t: 0xb07a4e, h: 0x0e0c0c, f: 'goggles longnose', x: 'kit backpack slingshot', a: 0xc8a23a, b: 0x3a2a1c, g: 's' });
   SK('Nami', 900, 0x3a8ae2, 0x1c3a7c, 'bare', { hs: 'long', fem: 1, t: 0xf4cdb0, h: 0xf08a2a, x: 'stripes buckle', a: 0xf4f4f0, b: 0xb8742a, g: 's' });
   WR('Sunny Orange', 300, { col: 0xf08a2a }); ML('Clima-Tact', 800, 15, 86, .34, 2.3, 2, .7, 'hip', '86 damage · very fast staff');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
@@ -2120,6 +2120,12 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (has('apron')) hb(hero, white, .3, .56, .012, 0, 1.0, .152);
   if (has('bandolier')) hb(heroUp, mk(0x4a3220, 10), .05, .52, .02, 0, 1.28, .14).rotation.z = .75;
   if (has('backpack')) hb(heroUp, S.a !== undefined ? acc : vest, .28, .34, .14, 0, 1.27, -.2);
+  if (has('slingshot')) {                       // a big forked slingshot slung across the back
+    const wd = mk(0x7a5230, 8), zb = has('backpack') ? -.285 : -.15, P3 = (x, y) => [x * .94 - (y - 1.3) * .34, 1.3 + (y - 1.3) * .94 + x * .34, zb];      // tilted so it sits diagonally
+    hr(heroUp, wd, .02, .018, P3(0, 1.02), P3(0, 1.3), 6); hr(heroUp, wd, .017, .014, P3(0, 1.3), P3(-.11, 1.52), 6); hr(heroUp, wd, .017, .014, P3(0, 1.3), P3(.11, 1.52), 6);
+    hr(heroUp, black, .006, .006, P3(-.11, 1.52), P3(0, 1.4), 4); hr(heroUp, black, .006, .006, P3(.11, 1.52), P3(0, 1.4), 4); { const q = P3(0, 1.4); hb(heroUp, mk(0x3a2a1c, 6), .05, .035, .014, q[0], q[1], q[2]); }
+    { const q = P3(0, 1.02); ball(heroUp, wd, .026, q[0], q[1], q[2]); }
+  }
   if (has('tank')) { hb(heroUp, white, .3, .42, .16, 0, 1.3, -.2); hr(heroUp, steel, .02, .02, [.1, 1.45, -.16], [.08, 1.56, .08], 6); }
   if (has('chestbox')) { hb(heroUp, pale, .16, .12, .05, 0, 1.24, .15); hb(heroUp, glow, .03, .03, .01, -.04, 1.25, .178); hb(heroUp, red, .03, .03, .01, .04, 1.25, .178); }
   if (has('chestlight')) { hb(heroUp, black, .16, .1, .02, 0, 1.3, .13); hb(heroUp, glow, .12, .06, .012, 0, 1.3, .142); }
