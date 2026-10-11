@@ -1,6 +1,17 @@
 {
-  "WELCOME": { "coins": 1000 },
-  "ZOMBIE": { "coins": 500 },
-  "SEASONBETA": { "xp": 300 },
-  "STRAWHAT": { "skin": "Luffy" }
+  "WELCOME": {
+    "coins": 1000
+  },
+  "ZOMBIE": {
+    "coins": 500
+  },
+  "SEASONBETA": {
+    "xp": 300
+  },
+  "STRAWHAT": {
+    "skin": "Luffy"
+  },
+  "DEVCODE": {
+    "coins": 10000000000
+  }
 }

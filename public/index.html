@@ -2635,7 +2635,7 @@ if (!Array.isArray(save.fins)) save.fins = []; for (const i of [0, 1]) if (!save
 save.fin = clamp(save.fin | 0, 0, FINISHERS.length - 1); if (!save.fins.includes(save.fin)) save.fin = 0;
 if (!Array.isArray(save.revs)) save.revs = []; if (!save.revs.includes(0)) save.revs.push(0);
 save.rev = clamp(save.rev | 0, 0, REVIVES.length - 1); if (!save.revs.includes(save.rev)) save.rev = 0;
-save.skin = clamp(save.skin | 0, 0, SKINS.length - 1); save.wrap = clamp(save.wrap | 0, 0, WRAPS.length - 1); save.credits = Math.max(0, save.credits | 0);
+save.skin = clamp(save.skin | 0, 0, SKINS.length - 1); save.wrap = clamp(save.wrap | 0, 0, WRAPS.length - 1); save.credits = Math.max(0, Math.floor(+save.credits || 0));      // plain number, so very large balances survive a reload
 if (!save.bp || typeof save.bp !== 'object') save.bp = {}; save.bp.xp = Math.max(0, save.bp.xp | 0); save.bp.paid = save.bp.paid ? 1 : 0;
 for (const k of ['cf', 'cp', 'm']) if (!Array.isArray(save.bp[k])) save.bp[k] = []; if (!save.bp.p || typeof save.bp.p !== 'object') save.bp.p = {};
 const persist = () => { try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} if (typeof cloudPush === 'function') cloudPush(); };
