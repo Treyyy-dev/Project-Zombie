@@ -288,6 +288,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
 .lb-right{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 #setFull{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3;background:rgba(8,17,19,.97)}
 .set-body{flex:1;min-height:0;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.acct{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}.acct b{font-weight:600;font-size:17px;overflow-wrap:anywhere}#gBtn{min-height:0;color-scheme:light}
 .set-pane{display:flex;flex-direction:column;gap:14px;max-width:680px}
 .set-row{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:8px 16px;align-items:center}
 .set-row > span{font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
@@ -553,7 +554,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
     <div id="setFull" class="full" hidden>
       <div class="sh-top">
         <h2>Settings</h2>
-        <div class="tabs"><button class="tab" id="setTabGame" type="button" aria-pressed="true">Game</button><button class="tab" id="setTabCtl" type="button" aria-pressed="false">Controls</button><button class="tab" id="setTabPub" type="button" aria-pressed="false">Public</button></div>
+        <div class="tabs"><button class="tab" id="setTabGame" type="button" aria-pressed="true">Game</button><button class="tab" id="setTabCtl" type="button" aria-pressed="false">Controls</button><button class="tab" id="setTabPub" type="button" aria-pressed="false">Info</button></div>
         <button class="ghost" id="setClose" type="button" style="margin-left:auto">Close</button>
       </div>
       <div class="set-body">
@@ -565,9 +566,11 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <div class="set-row"><span>Performance mode</span><button class="ghost" id="setPerf" type="button" aria-pressed="false">Off</button></div>
           <p class="set-note">The game lowers its own resolution a little when frames run slow and raises it again when they recover. Performance mode is for when it still stutters: it drops the resolution, turns off shadows and thins out zombies and other players. Frame rate is a limit: the game never runs faster than your screen refreshes. Resolution, shadows and zombie count change straight away; surface detail and reflections change the next time you open the game.</p>
           <div class="set-row"><span>Sound</span><button class="ghost" id="setSound" type="button">Sound on</button></div>
-          <div class="set-row"><span>Player name</span><button class="ghost" id="setName" type="button">Change name</button></div>
         </div>
         <div class="set-pane" id="setPub" hidden>
+          <p class="lbl">You</p>
+          <div class="set-row"><span>Player name</span><div class="acct"><b id="pubName"></b><button class="ghost" id="setName" type="button">Change name</button></div></div>
+          <div class="set-row"><span>Account</span><div class="acct"><span class="sub" id="acctTxt" style="white-space:normal"></span><div id="gBtn"></div><button class="ghost" id="acctOut" type="button" hidden>Sign out</button></div></div>
           <p class="lbl">Voice chat</p>
           <div class="set-row"><span>Microphone</span><button class="ghost" id="setMic" type="button" aria-pressed="false">Off</button></div>
           <div class="set-row"><span>Hear other players</span><button class="ghost" id="setHear" type="button" aria-pressed="true">On</button></div>
@@ -4139,9 +4142,32 @@ function closeMissions() { missOpen = false; $('missFull').hidden = true; lobbyE
 $('btnMiss').addEventListener('click', openMissions); $('msClose').addEventListener('click', closeMissions);
 $('msTabD').addEventListener('click', () => { msTab = 'd'; renderMissions(); }); $('msTabW').addEventListener('click', () => { msTab = 'w'; renderMissions(); });
 
+/* ---------- account: sign in with Google on the game's own site, so you are the same player on every device ---------- */
+let acct = null; try { acct = JSON.parse(localStorage.getItem('deadshift.acct') || 'null'); if (!acct || typeof acct.uid !== 'string' || typeof acct.sess !== 'string') acct = null; } catch (e) { acct = null; }
+let gCfg = null, gLoad = 0, gDrawn = false;
+function acctUI() {
+  const txt = $('acctTxt'), out = $('acctOut'), host = $('gBtn'); out.hidden = !acct; host.hidden = !!acct;
+  if (acct) { txt.textContent = 'Signed in with Google as ' + (acct.name || 'your account') + '.'; return; }
+  if (!window.PZ_SERVER) { txt.textContent = 'Google sign-in works on the game\u2019s own website, not inside the Claude app.'; return; }
+  if (!gCfg) { txt.textContent = 'Checking…'; if (!gLoad) { gLoad = 1; fetch('/config').then(r => r.json()).then(c => { gCfg = c || {}; acctUI(); }).catch(() => { gCfg = {}; acctUI(); }); } return; }
+  if (!gCfg.google) { txt.textContent = 'Google sign-in has not been switched on for this site yet.'; return; }
+  txt.textContent = 'Not signed in. You are playing as a guest on this device.';
+  if (gLoad < 2) { gLoad = 2; const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = () => { gLoad = 3; acctUI(); }; sc.onerror = () => { gLoad = 4; $('acctTxt').textContent = 'Google sign-in could not load. Check your connection and reopen Settings.'; }; document.head.append(sc); return; }
+  if (gLoad === 3 && window.google && google.accounts && !gDrawn) { gDrawn = true;
+    try { google.accounts.id.initialize({ client_id: gCfg.google, callback: r => {
+        $('acctTxt').textContent = 'Signing in…';
+        fetch('/auth', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: r.credential }) }).then(x => x.json()).then(a => {
+          if (!a || !a.uid) { $('acctTxt').textContent = 'Sign-in was not accepted. Try again.'; return; }
+          try { localStorage.setItem('deadshift.acct', JSON.stringify({ uid: a.uid, name: a.name || '', sess: a.sess })); } catch (e) {}
+          location.reload(); }).catch(() => { $('acctTxt').textContent = 'Sign-in failed. Try again.'; }); } });
+      google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular' }); } catch (e) { gDrawn = false; }
+  }
+}
+$('acctOut').addEventListener('click', () => { try { localStorage.removeItem('deadshift.acct'); } catch (e) {} location.reload(); });
 /* ---------- own-server build (GitHub + Render): the same room calls, carried over a WebSocket to server.js ---------- */
 if (window.PZ_SERVER && !window.claude) (() => {
   let uidv = ''; try { uidv = localStorage.getItem('deadshift.uid') || ''; if (!uidv) { uidv = 'u' + Math.random().toString(36).slice(2, 12); localStorage.setItem('deadshift.uid', uidv); } } catch (e) { uidv = 'u' + Math.random().toString(36).slice(2, 12); }
+  const guest = uidv; if (acct) uidv = acct.uid;
   const rooms = new Map(), EMPTY = Object.freeze([]); let ws = null, open = false, myPeer = '', retry = 1000;
   const send = o => { if (open) try { ws.send(JSON.stringify(o)); } catch (e) {} };
   function mk(name) {
@@ -4156,12 +4182,12 @@ if (window.PZ_SERVER && !window.claude) (() => {
     rooms.set(name, R); send({ t: 'join', room: name }); return R;
   }
   function connect() {
-    try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?uid=' + encodeURIComponent(uidv)); } catch (e) { setTimeout(connect, retry); return; }
+    try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws?uid=' + encodeURIComponent(uidv) + (acct ? '&sess=' + encodeURIComponent(acct.sess) : '')); } catch (e) { setTimeout(connect, retry); return; }
     ws.onopen = () => { open = true; retry = 1000; for (const R of rooms.values()) { R.others.clear(); send({ t: 'join', room: R.name }); if (Object.keys(R.me).length) send({ t: 'p', room: R.name, pr: R.me }); R.fire(); } };
     ws.onclose = () => { open = false; for (const R of rooms.values()) { R.others.clear(); R.fire(); } setTimeout(connect, retry); retry = Math.min(8000, retry * 2); };
     ws.onerror = () => {};
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
-      if (m.t === 'hi') { myPeer = m.peer; return; }
+      if (m.t === 'hi') { myPeer = m.peer; if (acct && m.uid !== acct.uid) { try { localStorage.removeItem('deadshift.acct'); } catch (x) {} location.reload(); } return; }      // the server no longer accepts this sign-in: go back to guest
       const R = rooms.get(m.room); if (!R) return;
       const put = q => R.others.set(q.peer, Object.freeze({ peer: q.peer, by: q.by, isMe: false, sameTab: false, kind: 'viewer', guest: false, presence: Object.freeze(q.pr || {}), updatedAt: Date.now() }));
       if (m.t === 'snap') { R.others.clear(); for (const q of m.peers || []) put(q); } else if (m.t === 'p') put(m); else if (m.t === 'bye') R.others.delete(m.peer);
@@ -4608,6 +4634,7 @@ function renderSettings(tab) {
   $('setGame').hidden = tab !== 'game'; $('setCtl').hidden = tab !== 'ctl'; $('setPub').hidden = tab !== 'pub';
   $('setTabGame').setAttribute('aria-pressed', tab === 'game'); $('setTabCtl').setAttribute('aria-pressed', tab === 'ctl'); $('setTabPub').setAttribute('aria-pressed', tab === 'pub');
   $('setMic').textContent = cfg.mic ? 'On' : 'Off'; $('setMic').setAttribute('aria-pressed', String(!!cfg.mic)); $('setHear').textContent = cfg.hear ? 'On' : 'Off'; $('setHear').setAttribute('aria-pressed', String(!!cfg.hear));
+  $('pubName').textContent = playerName; acctUI();
   slider('slVV', 'vv', 0, 1, .05, v => Math.round(v * 100) + '%', () => voice.apply()); $('pubStatus').textContent = voice.status();
   seg('segFps', 'fps', [[30, '30'], [60, '60'], [90, '90'], [120, '120']]);
   seg('segQ', 'q', [[0, 'Very low'], [1, 'Low'], [2, 'Medium'], [3, 'High'], [4, 'Very high']], applyQuality);

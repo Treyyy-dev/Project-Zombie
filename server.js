@@ -1,12 +1,30 @@
 // Project Zombie: one small server for Render. It serves the game from /public and relays the
 // online layer (lobby, parties, matches, voice-chat signalling) over a WebSocket at /ws.
 // No dependencies: `node server.js` is all it needs.
-const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
+const http = require('http'), https = require('https'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 const PORT = process.env.PORT || 3000, ROOT = path.resolve(process.env.PZ_PUBLIC || path.join(__dirname, 'public'));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
 
+
+// ----- Google sign-in (optional): set GOOGLE_CLIENT_ID in Render's Environment settings to switch it on -----
+const GOOGLE = process.env.GOOGLE_CLIENT_ID || '', SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');      // without SESSION_SECRET, sign-ins last until the server restarts
+const sign = uid => { const exp = Date.now() + 90 * 864e5, body = uid + '.' + exp; return body + '.' + crypto.createHmac('sha256', SECRET).update(body).digest('hex'); };
+const checkSess = (uid, sess) => { const p = String(sess || '').split('.'); if (p.length !== 3 || p[0] !== uid || !(+p[1] > Date.now())) return false; const want = crypto.createHmac('sha256', SECRET).update(p[0] + '.' + p[1]).digest('hex'); return want.length === p[2].length && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(p[2])); };
+function verifyGoogle(token, done) {              // Google checks the token for us; we only accept one issued for this site
+  https.get('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token), r => { let d = ''; r.on('data', c => { d += c; if (d.length > 20000) r.destroy(); }); r.on('end', () => { try { const j = JSON.parse(d); done(r.statusCode === 200 && j.aud === GOOGLE && j.sub && +j.exp * 1000 > Date.now() ? j : null); } catch (e) { done(null); } }); }).on('error', () => done(null));
+}
+
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]); if (p === '/') p = '/index.html';
+  if (p === '/config') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify({ google: GOOGLE })); return; }
+  if (p === '/auth' && req.method === 'POST') {
+    let body = ''; req.on('data', c => { body += c; if (body.length > 20000) req.destroy(); });
+    req.on('end', () => { let tok = ''; try { tok = String(JSON.parse(body).token || ''); } catch (e) {}
+      const fail = () => { res.writeHead(401, { 'content-type': 'application/json' }); res.end('{}'); };
+      if (!GOOGLE || !tok) return fail();
+      verifyGoogle(tok, j => { if (!j) return fail(); const uid = 'g' + String(j.sub).replace(/\D/g, '').slice(0, 30); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ uid, name: String(j.name || j.given_name || '').slice(0, 60), sess: sign(uid) })); }); });
+    return;
+  }
   if (p === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok ' + clients.size); return; }
   const file = path.join(ROOT, path.normalize(p)); if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {
@@ -36,9 +54,10 @@ server.on('upgrade', (req, sock) => {
   const key = req.headers['sec-websocket-key']; if (!key || !/^\/ws(\?|$)/.test(req.url || '')) { sock.destroy(); return; }
   sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64') + '\r\n\r\n');
   sock.setNoDelay(true);
-  const uid = String(new URL(req.url, 'http://x').searchParams.get('uid') || '').replace(/[^\w-]/g, '').slice(0, 40) || 'u' + crypto.randomBytes(5).toString('hex');
+  const q = new URL(req.url, 'http://x').searchParams; let uid = String(q.get('uid') || '').replace(/[^\w-]/g, '').slice(0, 40);
+  if (!uid || (uid[0] === 'g' && !checkSess(uid, q.get('sess')))) uid = 'u' + crypto.randomBytes(5).toString('hex');      // account ids need a valid sign-in; everyone else is a guest
   const c = { sock, uid, peer: 'p' + crypto.randomBytes(8).toString('hex'), rooms: new Set(), dead: false, alive: true, win: 0, n: 0 }; clients.add(c);
-  sendTo(c, { t: 'hi', peer: c.peer });
+  sendTo(c, { t: 'hi', peer: c.peer, uid: c.uid, now: Date.now() });
   let buf = Buffer.alloc(0), parts = [];
   const end = () => { if (c.dead) return; c.dead = true; clients.delete(c); for (const n of [...c.rooms]) leave(c, n); try { sock.destroy(); } catch (e) {} };
   sock.on('data', d => {
