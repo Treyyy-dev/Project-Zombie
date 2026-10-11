@@ -1,5 +1,5 @@
-// Dead Shift: keeps the game playable from the home screen, including offline.
-const C = 'deadshift-v1';
+// Project Zombie: keeps the game playable from the home screen, including offline.
+const C = 'projectzombie-v2';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
