@@ -563,6 +563,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <div class="set-row"><span>Frame rate</span><div class="seg" id="segFps"></div></div>
           <div class="set-row"><span>Quality</span><div class="seg" id="segQ"></div></div>
           <div class="set-row"><span>Brightness</span><div class="slw" id="slBr"></div></div>
+          <div class="set-row"><span>Camera</span><button class="ghost" id="setTp" type="button" aria-pressed="false">First person</button></div>
           <div class="set-row"><span>Motion blur</span><button class="ghost" id="setBlur" type="button" aria-pressed="false">Off</button></div>
           <div class="set-row"><span>Performance mode</span><button class="ghost" id="setPerf" type="button" aria-pressed="false">Off</button></div>
           <p class="set-note">The game lowers its own resolution a little when frames run slow and raises it again when they recover. Performance mode is for when it still stutters: it drops the resolution, turns off shadows and thins out zombies and other players. Frame rate is a limit: the game never runs faster than your screen refreshes. Resolution, shadows and zombie count change straight away; surface detail and reflections change the next time you open the game.</p>
@@ -665,7 +666,7 @@ const cfg = { fps: 60, q: isTouch ? 1 : 3, sh: 1, sv: 1, sa: .55, fov: 100, hud:
 try { const c = JSON.parse(localStorage.getItem('deadshift.cfg') || 'null'); if (c && typeof c === 'object') Object.assign(cfg, c); } catch (e) {}
 cfg.q = clamp(cfg.q | 0, 0, 4); cfg.fps = [30, 60, 90, 120].includes(cfg.fps) ? cfg.fps : 60; cfg.fov = clamp(+cfg.fov || 100, 60, 120);
 cfg.sh = clamp(+cfg.sh || 1, .2, 3); cfg.sv = clamp(+cfg.sv || 1, .2, 3); cfg.sa = clamp(+cfg.sa || .55, .1, 1.5);
-if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.mus = cfg.mus === 0 ? 0 : 1; cfg.br = cfg.br === undefined ? 1 : clamp(+cfg.br || 1, .5, 2); cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
+if (!cfg.hud || typeof cfg.hud !== 'object') cfg.hud = {}; if (cfg.mode !== 'training') cfg.mode = 'extraction'; cfg.team = clamp(cfg.team | 0, 1, 4); cfg.fill = cfg.fill === 0 ? 0 : 1; cfg.tp = cfg.tp ? 1 : 0; cfg.mus = cfg.mus === 0 ? 0 : 1; cfg.br = cfg.br === undefined ? 1 : clamp(+cfg.br || 1, .5, 2); cfg.mic = cfg.mic ? 1 : 0; cfg.hear = cfg.hear === 0 ? 0 : 1; cfg.vv = cfg.vv === undefined ? 1 : clamp(+cfg.vv || 0, 0, 1); cfg.perf = cfg.perf ? 1 : 0; cfg.blur = cfg.blur === undefined ? 1 : cfg.blur ? 1 : 0;             // Extraction is the only open mode
 const saveCfg = () => { try { localStorage.setItem('deadshift.cfg', JSON.stringify(cfg)); } catch (e) {} };
 const low = cfg.q <= 1;                    // simpler materials on the two lowest quality levels
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -4459,7 +4460,7 @@ const net = (() => {
     if (pr.s === 1) { if (!b.down && !(T < (b.grace || 0))) { b.down = true; b.rev = 0; if (!N.ev) feed(b.name.toUpperCase() + ' is down', 'bad'); if (b.team === 0) banner(b.name + ' is down', 'Get to them and revive', 2); } if (b.down) b.bleed = Math.max(2, num(pr.bl, 0, 90, 30)); }
     else if (b.down && P.revB !== b) { b.down = false; b.rev = 0; }
   };
-  N.shot = () => { fireN++; };
+  N.shot = () => { fireN++; tp.kick = 1; };
   // ----- player versus player: what I do to another real player is sent to them, and their own game applies it -----
   N.hit = (b, dmg) => { if (N.ev && N.mroom) N.mroom.emit('hit', { to: b.net, dmg: Math.round(dmg) }); };
   N.fin = (b, idx, att) => { if (!att) N.finAt = T; if (N.ev && N.mroom) N.mroom.emit('fin', { to: b.net, i: idx, bid: att ? att.id : 0 }); };
@@ -4847,7 +4848,7 @@ function renderSettings(tab) {
   slider('slBr', 'br', .5, 2, .05, v => Math.round(v * 100) + '%', () => applyBright());
   slider('slFov', 'fov', 60, 120, 1, v => v + '°', resize);
   slider('slH', 'sh', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slV', 'sv', .2, 3, .05, v => v.toFixed(2) + '×'); slider('slA', 'sa', .1, 1.5, .05, v => v.toFixed(2) + '×');
-  fillKeys($('setKeys')); $('setSound').textContent = muted ? 'Sound off' : 'Sound on'; $('setMus').textContent = cfg.mus ? 'On' : 'Off'; $('setMus').setAttribute('aria-pressed', String(!!cfg.mus));
+  fillKeys($('setKeys')); $('setSound').textContent = muted ? 'Sound off' : 'Sound on'; $('setTp').textContent = cfg.tp ? 'Third person' : 'First person'; $('setTp').setAttribute('aria-pressed', String(!!cfg.tp)); $('setMus').textContent = cfg.mus ? 'On' : 'Off'; $('setMus').setAttribute('aria-pressed', String(!!cfg.mus));
   $('setBlur').textContent = cfg.blur ? 'On' : 'Off'; $('setBlur').setAttribute('aria-pressed', String(!!cfg.blur));
   $('setPerf').textContent = cfg.perf ? 'On' : 'Off'; $('setPerf').setAttribute('aria-pressed', String(!!cfg.perf));
 }
@@ -4954,6 +4955,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyE') interact();
   if (e.code === 'KeyH') useMed();
   if (e.code === 'Tab' || e.code === 'KeyI') { e.preventDefault(); openInv(); }
+  if (e.code === 'KeyV') { cfg.tp = cfg.tp ? 0 : 1; saveCfg(); }
   if (e.code === 'KeyQ') cycle(1);
   if (e.code === 'KeyF' || e.code === 'KeyV') { if (nearDoor && !P.drive) doKick(); else melee(); }
   if (e.code === 'KeyG') doKick();
@@ -5123,6 +5125,22 @@ function updatePlayer(dt) {
   kickV += (-190 * kick - 16 * kickV) * dt; kick += kickV * dt;                 // recoil is a damped spring: it snaps back and settles
   shake = Math.max(0, shake - dt);
   if (P.hp <= 35) { heartT -= dt; if (heartT <= 0) { heartT = .85; sfx.heart(); } }
+}
+// ----- third-person view: the camera sits behind your right shoulder and your own character is drawn, moving the way other players see it -----
+const tp = { on: false, ph: 0, kick: 0, d: 3 };
+function thirdPerson(dt) {
+  const on = !!cfg.tp && state === 'play' && !P.drive && !P.fin && !P.revB && !P.dead;
+  if (!on) { if (tp.on) { tp.on = false; if (!P.fin && !P.revB) { hero.visible = false; hero.position.set(0, 0, 0); hero.rotation.set(0, 0, 0); if (hero.userData.rig) applyPose(hero.userData.rig, {}); } } return; }
+  tp.on = true; tp.kick = Math.max(0, tp.kick - dt * 8);
+  const spd = P.moving > .1 ? (P.sprinting ? 6.6 : 3.4 * Math.min(1, P.moving)) : 0; tp.ph += spd * dt * 2.3;
+  const v = { slide: P.slideT > 0 ? 1 : 0, kneel: 0, heal: 0, vault: P.vault ? { t: P.vault.t } : null, jump: P.air ? 1 : 0, melT: meleeT > 0 ? Math.min(.32, meleeT) : 0, aim: aimK > .3 || tp.kick > 0 || reloading ? 1 : 0, crouch: P.crouch ? 1 : 0, kick: tp.kick, flinch: 0, spd, ph: tp.ph, t: T, slot: 0, revI: save.rev };
+  let pose = P.down ? downPose(T) : botPose(v); if (!P.down && !v.slide && !v.vault) pose = mixP(pose, { ux: (pose.ux || 0) - P.pitch * .45, hx: (pose.hx || 0) - P.pitch * .35 });      // lean with where you are looking
+  hero.visible = true; hero.position.set(P.x, P.y, P.z); hero.rotation.set(0, P.yaw + Math.PI, 0); if (hero.userData.rig) applyPose(hero.userData.rig, pose);
+  const cp = Math.cos(P.pitch), fx = -Math.sin(P.yaw) * cp, fy = Math.sin(P.pitch), fz = -Math.cos(P.yaw) * cp, rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
+  const px = P.x + rx * .5, py = P.y + (P.down ? .9 : P.crouch ? 1.25 : 1.62), pz = P.z + rz * .5, want = aimK > .3 ? 1.9 : 3.1;
+  let d = want; for (let k = 1; k <= 8; k++) { const q = want * k / 8; if (blocked(px - fx * q, pz - fz * q, .22)) { d = Math.max(.5, want * (k - 1) / 8); break; } }      // walls pull the camera in instead of letting it pass through
+  tp.d += (d - tp.d) * Math.min(1, dt * (d < tp.d ? 18 : 5));
+  camera.position.set(px - fx * tp.d, Math.max(P.y + .35, py - fy * tp.d), pz - fz * tp.d);
 }
 function placeCamera(dt) {
   if (!isFinite(kick + kickV)) kick = kickV = 0; if (!isFinite(shake)) shake = 0; if (!isFinite(roll)) roll = 0; if (!isFinite(P.pitch)) P.pitch = 0; if (!isFinite(P.yaw)) P.yaw = 0;
@@ -5508,6 +5526,7 @@ function update(dt) {
   if (state !== 'play' && state !== 'inv') return;
   if (state === 'inv' && (P.down || P.fin)) closeInv();
   if (!P.drive && !P.fin && !P.revB) placeCamera(dt);
+  thirdPerson(dt);
   updateHud(dt);
 }
 /* ---------- lobby: a sunny grassland that never ends ---------- */
@@ -5670,6 +5689,7 @@ try {
   gg.putImageData(id, 0, 0); $('grain').style.backgroundImage = 'url(' + gc.toDataURL() + ')';
 } catch (e) {}
 $('setBlur').addEventListener('click', () => { cfg.blur = cfg.blur ? 0 : 1; saveCfg(); renderSettings('game'); });
+$('setTp').addEventListener('click', () => { cfg.tp = cfg.tp ? 0 : 1; saveCfg(); renderSettings('game'); });
 $('setMus').addEventListener('click', () => { cfg.mus = cfg.mus ? 0 : 1; saveCfg(); renderSettings('game'); });
 $('setPerf').addEventListener('click', () => { cfg.perf = cfg.perf ? 0 : 1; saveCfg(); applyQuality(); renderSettings('game'); });
 function applyQuality() {                       // performance mode: lowest resolution, no shadows, thin rain, fewer and lighter characters
@@ -5705,7 +5725,7 @@ function frame(now) {
     if (px !== blurPx) { blurPx = px; canvas.classList.toggle('mb', !!px); if (px) canvas.style.setProperty('--mb', px); } }
   if (state === 'play' || state === 'inv') update(dt); else if (state === 'intro') updateCut(dt); else if (state === 'outro') updateOutro(dt); else if (state === 'spec') updateSpec(dt); else if (state !== 'pause' && state !== 'inv' && state !== 'map') idle(dt);
   renderer.clear(); renderer.render(scene, camera);
-  if (gunRoot.visible) { renderer.clearDepth(); renderer.render(gunScene, gunCam); }
+  if (gunRoot.visible && !tp.on) { renderer.clearDepth(); renderer.render(gunScene, gunCam); }
 }
 try {
   const c = document.createElement('canvas'); c.width = 512; c.height = 288; const g = c.getContext('2d');
