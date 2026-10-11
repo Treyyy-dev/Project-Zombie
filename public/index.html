@@ -2590,7 +2590,7 @@ save.rev = clamp(save.rev | 0, 0, REVIVES.length - 1); if (!save.revs.includes(s
 save.skin = clamp(save.skin | 0, 0, SKINS.length - 1); save.wrap = clamp(save.wrap | 0, 0, WRAPS.length - 1); save.credits = Math.max(0, save.credits | 0);
 if (!save.bp || typeof save.bp !== 'object') save.bp = {}; save.bp.xp = Math.max(0, save.bp.xp | 0); save.bp.paid = save.bp.paid ? 1 : 0;
 for (const k of ['cf', 'cp', 'm']) if (!Array.isArray(save.bp[k])) save.bp[k] = []; if (!save.bp.p || typeof save.bp.p !== 'object') save.bp.p = {};
-const persist = () => { try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} };
+const persist = () => { try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} if (typeof cloudPush === 'function') cloudPush(); };
 let titleChars = null, prevVic = null, prevRev = -1, revView = false, prevFin = -1, prevSkin = -1, prevWrap = -1, prevMelee = -1, prevIntro = -1, introT = 0, loadOpen = false, shopTab = 'skins', shopSel = 0, earned = 0, savedName = $('inName').value, splatA = 0;
 let gunRoll = 0, landK = 0, blurK = 0, blurPx = '', turnV = 0, fpIdle = 0, downK = 0, crouchK = 0, slideK = 0, gunHeat = 0; const SLIDE = .85;
 let inTown = false, loot = 0, exitI = 0, exT = 0, extracted = false, hemiBase = .3, threat = 1;
@@ -4188,7 +4188,7 @@ let acct = null; try { acct = JSON.parse(localStorage.getItem('deadshift.acct') 
 let gCfg = null, gLoad = 0, gDrawn = false;
 function acctUI() {
   const txt = $('acctTxt'), out = $('acctOut'), host = $('gBtn'); out.hidden = !acct; host.hidden = !!acct;
-  if (acct) { txt.textContent = 'Signed in with Google as ' + (acct.name || 'your account') + '.'; return; }
+  if (acct) { txt.textContent = 'Signed in with Google as ' + (acct.name || 'your account') + '. Your progress is saved to your account.'; return; }
   if (!window.PZ_SERVER) { txt.textContent = 'Google sign-in works on the game\u2019s own website, not inside the Claude app.'; return; }
   if (!gCfg) { txt.textContent = 'Checking…'; if (!gLoad) { gLoad = 1; fetch('/config').then(r => r.json()).then(c => { gCfg = c || {}; acctUI(); }).catch(() => { gCfg = {}; acctUI(); }); } return; }
   if (!gCfg.google) { txt.textContent = 'Google sign-in has not been switched on for this site yet.'; return; }
@@ -4204,6 +4204,21 @@ function acctUI() {
       google.accounts.id.renderButton(host, { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular' }); } catch (e) { gDrawn = false; }
   }
 }
+// progress follows a signed-in player: newer copy on the server replaces this device's, and every change here is sent up
+let cloudT = 0, cloudState = '';
+const CLOUD_KEYS = ['deadshift.save', 'deadshift.loadout', 'deadshift.friends', 'deadshift.name'];
+function cloudPush() {
+  if (!acct || !window.PZ_SERVER) return; clearTimeout(cloudT);
+  cloudT = setTimeout(() => { const d = {}, t = Date.now(); try { for (const k of CLOUD_KEYS) { const v = localStorage.getItem(k); if (v !== null) d[k] = v; } } catch (e) { return; }
+    fetch('/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uid: acct.uid, sess: acct.sess, t, d }) }).then(r => r.json()).then(a => { if (a && a.ok) { cloudState = 'saved'; try { localStorage.setItem('deadshift.syncT', String(t)); } catch (e) {} } }).catch(() => {}); }, 4000);
+}
+if (acct && window.PZ_SERVER) fetch('/save?uid=' + encodeURIComponent(acct.uid) + '&sess=' + encodeURIComponent(acct.sess)).then(r => r.json()).then(c => {
+  let mine = 0; try { mine = +localStorage.getItem('deadshift.syncT') || 0; } catch (e) {}
+  if (c && c.t && c.d && c.t > mine) {             // this account has newer progress from another device: take it
+    try { for (const k of CLOUD_KEYS) if (typeof c.d[k] === 'string') localStorage.setItem(k, c.d[k]); localStorage.setItem('deadshift.syncT', String(c.t)); } catch (e) { return; }
+    if (state === 'title' || state === 'lobby' || state === 'name') location.reload();
+  } else { cloudState = 'saved'; if (!c || !c.t) cloudPush(); }
+}).catch(() => {});
 $('acctOut').addEventListener('click', () => { try { localStorage.removeItem('deadshift.acct'); } catch (e) {} location.reload(); });
 /* ---------- own-server build (GitHub + Render): the same room calls, carried over a WebSocket to server.js ---------- */
 if (window.PZ_SERVER && !window.claude) (() => {

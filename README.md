@@ -43,6 +43,16 @@ Signing in makes you the same player on every device, so friends keep recognisin
    - `SESSION_SECRET` = any long random text (keeps people signed in when the server restarts)
 5. Save. Render restarts the server, and the Google button appears in **Settings > Info**.
 
+## Add a database (optional, free)
+
+Without a database, player names are forgotten whenever the server restarts and progress stays in each browser. With one, names are kept for good and a signed-in player's coins, unlocks, battle pass and friends follow their Google account to any device.
+
+1. Go to https://upstash.com and sign up (the free plan needs no card).
+2. Create a **Redis** database. Any name and the region closest to your Render service (for example US West for Oregon).
+3. On the database page find the **REST API** section and copy the two values: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
+4. On Render open your service, go to **Environment**, and add both as variables with exactly those names.
+5. Save. Render restarts the server and starts using the database.
+
 ## Updating the game
 
 Replace `public/index.html` with the new version and push to GitHub. Render redeploys by itself.

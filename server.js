@@ -14,15 +14,25 @@ function verifyGoogle(token, done) {              // Google checks the token for
   https.get('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(token), r => { let d = ''; r.on('data', c => { d += c; if (d.length > 20000) r.destroy(); }); r.on('end', () => { try { const j = JSON.parse(d); done(r.statusCode === 200 && j.aud === GOOGLE && j.sub && +j.exp * 1000 > Date.now() ? j : null); } catch (e) { done(null); } }); }).on('error', () => done(null));
 }
 
-// ----- player names: each name belongs to one player. Kept in memory and in a small file; a fresh server starts with an empty list -----
-const nameOwner = new Map(), nameOf = new Map(), NAMES = path.join(process.env.PZ_DATA || __dirname, 'names.json');
+// ----- database (optional): set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Render's Environment settings.
+// With it, player names and signed-in players' progress are kept for good. Without it they live in memory and are lost on a restart. -----
+const DBURL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, ''), DBTOK = process.env.UPSTASH_REDIS_REST_TOKEN || '', mem = new Map();
+async function db(...cmd) {                       // one Redis command; the in-memory stand-in understands the few this server uses
+  if (DBURL && DBTOK) { const r = await fetch(DBURL, { method: 'POST', headers: { authorization: 'Bearer ' + DBTOK, 'content-type': 'application/json' }, body: JSON.stringify(cmd) }); const j = await r.json(); if (j.error) throw new Error(j.error); return j.result; }
+  const [op, k, v, flag] = cmd;
+  if (op === 'GET') return mem.has(k) ? mem.get(k) : null;
+  if (op === 'SET') { if (flag === 'NX' && mem.has(k)) return null; mem.set(k, String(v)); return 'OK'; }
+  if (op === 'DEL') return mem.delete(k) ? 1 : 0;
+  return null;
+}
 const cleanName = x => Array.from(String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim()).slice(0, 16).join('');
-try { for (const [uid, name] of JSON.parse(fs.readFileSync(NAMES, 'utf8'))) { nameOf.set(uid, name); nameOwner.set(name.toLowerCase(), uid); } } catch (e) {}
-let saveT = null; const saveNames = () => { if (saveT) return; saveT = setTimeout(() => { saveT = null; fs.writeFile(NAMES, JSON.stringify([...nameOf]), () => {}); }, 2000); };
+const json = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
+const readBody = (req, max, done) => { let body = ''; req.on('data', c => { body += c; if (body.length > max) req.destroy(); }); req.on('end', () => { let j = {}; try { j = JSON.parse(body) || {}; } catch (e) {} done(j); }); };
+const cleanUid = x => String(x || '').replace(/[^\w-]/g, '').slice(0, 40);
 
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]); if (p === '/') p = '/index.html';
-  if (p === '/config') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify({ google: GOOGLE })); return; }
+  if (p === '/config') { json(res, 200, { google: GOOGLE, db: !!(DBURL && DBTOK) }); return; }
   if (p === '/auth' && req.method === 'POST') {
     let body = ''; req.on('data', c => { body += c; if (body.length > 20000) req.destroy(); });
     req.on('end', () => { let tok = ''; try { tok = String(JSON.parse(body).token || ''); } catch (e) {}
@@ -32,19 +42,23 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (p === '/name' && req.method === 'POST') {     // one player per name
-    let body = ''; req.on('data', c => { body += c; if (body.length > 4000) req.destroy(); });
-    req.on('end', () => { let j = {}; try { j = JSON.parse(body) || {}; } catch (e) {}
-      let uid = String(j.uid || '').replace(/[^\w-]/g, '').slice(0, 40); const name = cleanName(j.name), key = name.toLowerCase();
-      if (!uid || !name || (uid[0] === 'g' && !checkSess(uid, j.sess))) { res.writeHead(400, { 'content-type': 'application/json' }); res.end('{"ok":false}'); return; }
-      const owner = nameOwner.get(key);
-      if (owner && owner !== uid) { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":false}'); return; }
-      const old = nameOf.get(uid); if (old && old.toLowerCase() !== key) nameOwner.delete(old.toLowerCase());
-      nameOwner.set(key, uid); nameOf.set(uid, name); saveNames();
-      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, name })); });
+    readBody(req, 4000, async j => { try {
+      const uid = cleanUid(j.uid), name = cleanName(j.name), key = 'pz:name:' + name.toLowerCase();
+      if (!uid || !name || (uid[0] === 'g' && !checkSess(uid, j.sess))) return json(res, 400, { ok: false });
+      if ((await db('SET', key, uid, 'NX')) === null) { const owner = await db('GET', key); if (owner !== uid) return json(res, 200, { ok: false }); }
+      const old = await db('GET', 'pz:uname:' + uid); if (old && old.toLowerCase() !== name.toLowerCase()) await db('DEL', 'pz:name:' + old.toLowerCase());
+      await db('SET', 'pz:uname:' + uid, name); json(res, 200, { ok: true, name });
+    } catch (e) { json(res, 200, { ok: true }); } });      // if the database is unreachable, let people play rather than lock them out
     return;
   }
-  if (p === '/find') { const name = cleanName(new URL(req.url, 'http://x').searchParams.get('name')), uid = nameOwner.get(name.toLowerCase());
-    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-cache' }); res.end(JSON.stringify(uid ? { uid, name: nameOf.get(uid) || name } : {})); return; }
+  if (p === '/find') { (async () => { try { const name = cleanName(new URL(req.url, 'http://x').searchParams.get('name')), uid = name ? await db('GET', 'pz:name:' + name.toLowerCase()) : null;
+      json(res, 200, uid ? { uid, name: (await db('GET', 'pz:uname:' + uid)) || name } : {}); } catch (e) { json(res, 200, {}); } })(); return; }
+  if (p === '/save') {                              // progress for signed-in players: it follows their Google account to any device
+    const q = new URL(req.url, 'http://x').searchParams;
+    if (req.method === 'GET') { (async () => { try { const uid = cleanUid(q.get('uid')); if (uid[0] !== 'g' || !checkSess(uid, q.get('sess'))) return json(res, 401, {}); const v = await db('GET', 'pz:save:' + uid); json(res, 200, v ? JSON.parse(v) : {}); } catch (e) { json(res, 503, {}); } })(); return; }
+    if (req.method === 'POST') { readBody(req, 120000, async j => { try { const uid = cleanUid(j.uid); if (uid[0] !== 'g' || !checkSess(uid, j.sess)) return json(res, 401, {}); const t = +j.t || Date.now(), d = j.d && typeof j.d === 'object' ? j.d : null; if (!d) return json(res, 400, {});
+        const body = JSON.stringify({ t, d }); if (body.length > 100000) return json(res, 413, {}); await db('SET', 'pz:save:' + uid, body); json(res, 200, { ok: true, t }); } catch (e) { json(res, 503, {}); } }); return; }
+  }
   if (p === '/healthz') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok ' + clients.size); return; }
   const file = path.join(ROOT, path.normalize(p)); if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {
