@@ -1747,6 +1747,38 @@ function smgMesh(g, m1, m2) {               // world-scale submachine gun, barre
   bx(g, m2, .034, .05, .2, 0, -.005, .23); bx(g, m2, .04, .09, .03, 0, -.02, .335); bx(g, m1, .012, .012, .26, 0, .041, -.02);
   bx(g, m1, .006, .016, .008, 0, .05, -.14); bx(g, m1, .008, .016, .008, -.012, .05, .09); bx(g, m1, .008, .016, .008, .012, .05, .09);
 }
+function worldGun(g, kind, m1, m2) {        // world-scale third-person guns, barrel along -z, pistol grip near the origin: each kind has its own outline
+  const B = (m, w, h, d, x, y, z, rx) => { const q = bx(g, m, w, h, d, x, y, z); if (rx) q.rotation.x = rx; q.castShadow = true; return q; }, R = (m, r, z0, z1, y) => rod(g, m, r, r, [0, y || .006, z0], [0, y || .006, z1], 8);
+  if (kind === 'pistol' || kind === 'mpistol' || kind === 'magnum') {
+    const L = kind === 'magnum' ? .25 : .19; B(m1, .034, .046, L, 0, .012, -L / 2 + .05); B(m2, .032, .11, .046, 0, -.062, .045, .28); B(m2, .008, .03, .05, 0, -.03, -.01);
+    if (kind === 'magnum') { R(m1, .028, -.03, .03, .006); R(m1, .014, -.2, -.3, .016); B(m2, .014, .018, .02, 0, .042, .06); }
+    else if (kind === 'mpistol') { B(m2, .03, .15, .036, 0, -.11, .03, .1); R(m1, .013, -.14, -.2, .012); }
+    B(m1, .008, .012, .008, 0, .04, -L + .07);
+  } else if (kind === 'shotgun' || kind === 'autoshot') {
+    B(m1, .05, .07, .26, 0, 0, .02); R(m1, .017, -.11, -.66, .016); R(m1, .02, -.11, -.5, -.022); B(m2, .05, .05, .16, 0, -.022, -.3);
+    B(m2, .034, .09, .046, 0, -.075, .1, .35); B(m2, .04, .075, .26, 0, -.03, .3, -.12); B(m2, .042, .1, .03, 0, -.045, .435);
+    if (kind === 'autoshot') B(m2, .04, .13, .07, 0, -.1, -.02);
+  } else if (kind === 'sniper') {
+    B(m1, .048, .065, .36, 0, 0, 0); R(m1, .015, -.18, -.82, .008); R(m2, .022, -.76, -.84, .008); R(m1, .026, -.1, .14, .07); R(m2, .032, -.14, -.1, .07); R(m2, .032, .14, .17, .07); B(m1, .014, .03, .02, 0, .045, -.04); B(m1, .014, .03, .02, 0, .045, .08);
+    B(m2, .03, .11, .046, 0, -.085, .0, -.05); B(m2, .034, .09, .046, 0, -.075, .13, .35); B(m2, .042, .08, .3, 0, -.02, .34, -.08); B(m2, .044, .12, .03, 0, -.035, .49); for (const x of [-1, 1]) rod(g, m2, .006, .006, [x * .01, -.02, -.45], [x * .06, -.2, -.5], 5);
+  } else if (kind === 'lmg') {
+    B(m1, .06, .085, .4, 0, .004, -.04); R(m1, .02, -.24, -.66, .012); R(m2, .028, -.24, -.44, .012); B(m2, .1, .11, .11, 0, -.1, -.08); B(m1, .05, .02, .2, 0, .056, -.04); B(m2, .034, .09, .046, 0, -.08, .1, .35);
+    B(m2, .042, .085, .24, 0, -.01, .3); B(m2, .044, .12, .03, 0, -.025, .43); for (const x of [-1, 1]) rod(g, m2, .007, .007, [x * .012, -.02, -.5], [x * .07, -.22, -.56], 5); B(m1, .008, .03, .008, 0, .05, -.6);
+  } else if (kind === 'rifle') {
+    B(m1, .05, .07, .34, 0, 0, -.03); R(m1, .016, -.2, -.56, .008); B(m2, .048, .056, .24, 0, 0, -.3); B(m1, .03, .19, .05, 0, -.125, -.07, -.3); B(m2, .034, .09, .046, 0, -.078, .08, .3);
+    B(m2, .036, .05, .2, 0, -.004, .25); B(m2, .042, .1, .03, 0, -.022, .36); B(m1, .012, .012, .3, 0, .041, -.04); B(m1, .008, .03, .008, 0, .05, -.5); B(m1, .02, .026, .03, 0, .054, .05);
+  } else smgMesh(g, m1, m2);
+}
+function heroArms() {                           // which weapon your character is holding right now: the gun you carry, or the melee weapon while it swings
+  const rig = hero.userData.rig; if (!rig || !rig.gun) return;
+  const w = W[cur], inHand = !!(w && w.melee) || meleeT > 0, on = tp.on;
+  if (on && rig.gm && w && !w.melee && rig.gk !== w.kind) {
+    rig.gk = w.kind; while (rig.gun.children.length) rig.gun.remove(rig.gun.children[0]);
+    try { worldGun(rig.gun, w.kind, rig.gm[0], rig.gm[1]); } catch (e) { smgMesh(rig.gun, rig.gm[0], rig.gm[1]); }
+    if (save.aura > 0) setAura(hero, save.aura);
+  }
+  rig.gun.visible = !(on && inHand); if (rig.hand) rig.hand.visible = on && inHand; if (rig.mw) rig.mw.visible = !(on && inHand);
+}
 const tmpE = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), XAX = new THREE.Vector3(1, 0, 0);
 function applyPose(rig, p) {                  // p: joint angles and body offsets; anything missing is at rest
   const g = k => p[k] || 0, b = rig.root, u = rig.up, c = g('cen');
@@ -2040,6 +2072,15 @@ const REVIVES = [
   SK('Vegeta', 900, 0x24388a, 0x24388a, 'bare', { hs: 'flame', t: 0xf0c49e, h: 0x0e0c0c, x: 'kit pads', v: 0xf0f0e8, b: 0xf4f4f0, g: 0xf4f4f0, sz: .94 });
   SK('Trunks', 900, 0x2a3a8a, 0x2a2a30, 'bare', { hs: 'bob', t: 0xf0c49e, h: 0xb8a0e0, x: 'zip buckle', a: 0x101014, b: 0xe8c040, g: 's' });
   WR('Kame Orange', 300, { col: 0xf2801e }); ML('Future Sword', 900, 21, 122, .55, 2.5, 2, .4, 'back', '122 damage · long, hits two');
+  // ----- Web Slinger Series and Hidden Leaf Series: fan-made sets in the style of the comics and the anime -----
+  SK('Spider-Man', 900, 0xc8201e, 0x1e3a9a, 'webmask', { ld: 0xc8201e, x: 'spider', a: 0x101014, b: 0xc8201e, g: 0xc8201e });
+  SK('Miles Morales', 900, 0x141418, 0x141418, 'webmask', { ld: 0x141418, x: 'spider', a: 0xd8201e, b: 0x141418, g: 0xd8201e });
+  SK('Gwen Stacy', 900, 0xf2f2f2, 0x16161c, 'webmask', { ld: 0xf2f2f2, fem: 1, f: 'hood', x: 'spider', a: 0xf0508a, b: 0x2ac8c0, g: 0x16161c });
+  WR('Web Red', 300, { col: 0xc8201e }); ML('Web Baton', 700, 15, 82, .34, 2.1, 1, .6, 'hip', '82 damage · very fast');
+  SK('Naruto', 900, 0xf2801e, 0xf2801e, 'bare', { hs: 'spiky', t: 0xf4cba4, h: 0xf2d23a, f: 'headband whiskers', x: 'zip', a: 0x14141a, b: 0x24386a, g: 's' });
+  SK('Sasuke', 900, 0x2a3460, 0xe8e8e0, 'bare', { hs: 'spiky', t: 0xf6dcc4, h: 0x101018, f: 'headband', x: 'shorts', a: 0x2a3460, b: 0x24386a, g: 's' });
+  SK('Pain', 900, 0x121214, 0x121214, 'bare', { hs: 'spiky', t: 0xf0d8c4, h: 0xe8641e, f: 'headband studs', x: 'robe scarf', a: 0xb0201a, b: 0x101014, g: 's' });
+  WR('Leaf Green', 300, { col: 0x4a9a3a }); ML('Kunai', 600, 0, 74, .34, 1.9, 1, .2, 'chest', '74 damage · very fast');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2047,6 +2088,8 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Hidden Leaf Series', pin: 1, skins: ['Naruto', 'Sasuke', 'Pain'].map(sI), wrap: wI('Leaf Green'), melee: mI('Kunai'), intro: Math.max(0, aI('Backflip')), fin: fI('Moon Shot'), rev: rI('Whisper') });
+  BUNDLES.push({ name: 'Web Slinger Series', pin: 1, skins: ['Spider-Man', 'Miles Morales', 'Gwen Stacy'].map(sI), wrap: wI('Web Red'), melee: mI('Web Baton'), intro: Math.max(0, aI('Hero Landing')), fin: fI('Front Kick'), rev: rI('Slap Awake') });
   BUNDLES.push({ name: 'Saiyan Series', pin: 1, skins: ['Goku', 'Vegeta', 'Trunks'].map(sI), wrap: wI('Kame Orange'), melee: mI('Future Sword'), intro: Math.max(0, aI('Flex')), fin: fI('Haymaker'), rev: rI('Chest Pump'), aura: 'Super' });
   BUNDLES.push({ name: 'Smith House Series', pin: 1, skins: ['Mr. Poopybutthole', 'Summer', 'Jerry'].map(sI), wrap: wI('Smith Yellow'), melee: mI('Ooh-Wee Baton'), intro: Math.max(0, aI('Big Wave')), fin: fI('Haymaker'), rev: rI('Pep Talk') });
   BUNDLES.push({ name: 'Elmore Series', pin: 1, skins: ['Gumball', 'Darwin', 'Anais'].map(sI), wrap: wI('Elmore Blue'), melee: mI('Lunch Tray'), intro: Math.max(0, aI('Cartwheel')), fin: fI('Moon Shot'), rev: rI('Chest Pump') });
@@ -2229,10 +2272,11 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (has('buttons')) for (let i = 0; i < 3; i++) ball(heroUp, acc, .026, 0, 1.4 - i * .1, .135);
   if (has('ruff')) cyl(heroUp, white, .15, .15, .035, 0, 1.51, 0);
   if (has('stars')) for (const [x, y] of [[-.1, 1.34], [.07, 1.2], [-.03, 1.1], [.11, 1.42]]) hb(heroUp, gold, .03, .03, .006, x, y, .136).rotation.z = .78;
+  if (has('spider')) { hb(heroUp, acc, .05, .075, .008, 0, 1.33, .137); for (const x of [-1, 1]) for (const [y, r] of [[1.37, .6], [1.345, .2], [1.315, -.2], [1.29, -.6]]) hb(heroUp, acc, .075, .008, .008, x * .05, y, .137).rotation.z = x * r; }      // chest emblem
   if (has('scarf')) cyl(heroUp, acc, .09, .1, .07, 0, 1.51, .005);
   if (has('cape')) hb(heroUp, acc, .44, 1.0, .02, 0, 1.0, -.19).rotation.x = .09;
   const bareFace = ['cat', 'fish', 'bunny', 'tallhead', 'reindeer', 'strawhat', 'bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
-  hr(heroUp, S.hd === 'hood' || S.hd === 'astro' ? uni : S.hd === 'skull' ? bone : S.hd === 'robot' || S.hd === 'knight' ? steel : bareFace ? tone : black, .055, .05, [0, 1.48, 0], [0, 1.56, .005], 8);   // neck
+  hr(heroUp, S.hd === 'hood' || S.hd === 'astro' || S.hd === 'webmask' ? uni : S.hd === 'skull' ? bone : S.hd === 'robot' || S.hd === 'knight' ? steel : bareFace ? tone : black, .055, .05, [0, 1.48, 0], [0, 1.56, .005], 8);   // neck
 
   // ----- firearm held at the low ready, muzzle down to the left -----
   const G = new THREE.Vector3(-.02, 1.1, .2), d = new THREE.Vector3(.8, -.45, .3).normalize();
@@ -2251,7 +2295,8 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (has('neon')) hr(sp, glow, .056, .054, [sh[0] * .2, 1.3 - sh[1], 0], [sh[0] * .23, 1.275 - sh[1], 0], 8);
     if (right) {
       const gun = new THREE.Group(); gun.position.set(G.x - el[0], G.y - el[1], G.z - el[2]); gun.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), d); ep.add(gun);
-      smgMesh(gun, gunMetal, black); rig.gun = gun; rig.gq = gun.quaternion.clone();
+      smgMesh(gun, gunMetal, black); rig.gun = gun; rig.gm = [gunMetal, black];
+      { const hd = new THREE.Group(); hd.position.set(ha[0] - el[0], ha[1] - el[1], ha[2] - el[2]); hd.rotation.x = .9; hd.visible = false; ep.add(hd); rig.hand = hd; }      // the melee weapon goes here while you swing it rig.gq = gun.quaternion.clone();
     }
   });
   // ----- melee weapon carried on the body -----
@@ -2260,7 +2305,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (mount === 'chest') { mw.position.set(-.1, 1.33, .165); mw.rotation.z = Math.PI; }
   else if (mount === 'hip') { mw.position.set(.21, 1.0, .02); mw.rotation.set(.12, Math.PI / 2, Math.PI); }
   else { mw.position.set(.06, 1.02, -.21); mw.rotation.z = .5; }
-  heroUp.add(mw);
+  heroUp.add(mw); rig.mw = mw; if (main && rig.hand) rig.hand.add(meleeModel(mIdx));
 
   // ----- head -----
   const H = heroHead; H.position.set(0, 1.66, .01); heroUp.add(H);
@@ -2280,6 +2325,9 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (fhas('mask')) hb(H, pale, .13, .075, .03, 0, -.065, .095);
     if (fhas('patch')) hb(H, black, .046, .036, .014, .036, .018, .106);
     if (fhas('longnose')) hr(H, tone, .017, .013, [0, -.012, .1], [0, -.02, .24], 6);      // a very long nose
+    if (fhas('headband')) { cyl(H, mk(0x24386a), .113, .114, .034, 0, .06, 0); hb(H, steel, .075, .03, .012, 0, .06, .113); }      // forehead protector
+    if (fhas('whiskers')) for (const x of [-1, 1]) for (const j of [-1, 0, 1]) hb(H, black, .03, .004, .004, x * .07, -.03 + j * .014, .092).rotation.z = x * j * .15;
+    if (fhas('studs')) for (const x of [-1, 1]) { ball(H, black, .007, x * .017, -.012, .121); ball(H, black, .007, x * .02, -.075, .1); ball(H, black, .006, x * .108, .01, 0); }
     if (fhas('unibrow')) hb(H, hair, .1, .014, .012, 0, .044, .104);
     if (fhas('steelnose')) hb(H, steel, .03, .045, .035, 0, -.012, .11);
     if (fhas('scar')) { hb(H, mk(0x7a3a30, 4), .034, .008, .006, -.04, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.046, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.034, -.008, .106); }      // stitched scar under one eye
@@ -2299,6 +2347,9 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
       for (const x of [-1, 1]) { const e = ball(H, lid, .034, x * .075, .135, -.01); e.scale.set(1, 1.15, .8); } break;      // white hat with two round ears, open at the face
     case 'dog': face(true); for (const x of [-1, 1]) { const e = hb(H, lid, .05, .13, .03, x * .115, -.02, -.01); e.rotation.z = x * -.25; } { const sn = ball(H, tone, .05, 0, -.045, .1); sn.scale.set(1.25, .8, .9); } ball(H, black, .02, 0, -.03, .145);
       for (const x of [-1, 1]) { ball(H, white, .03, x * .04, .03, .092); ball(H, black, .014, x * .04, .03, .118); } break;      // floppy ears, a wide muzzle, big round eyes
+    case 'webmask': skull(lid);      // full mask with big white lenses, each ringed in the accent colour
+      for (const x of [-1, 1]) { const o = ball(H, acc, .043, x * .046, .022, .08); o.scale.set(1.15, .85, .5); o.rotation.z = x * -.5; const e = ball(H, white, .035, x * .046, .022, .088); e.scale.set(1.15, .8, .5); e.rotation.z = x * -.5; }
+      if (fhas('hood')) { ball(H, uni, .13, 0, .012, -.03).scale.set(1, 1.12, 1.02); hb(H, uni, .2, .09, .1, 0, -.1, -.07); } break;
     case 'cat': { ball(H, tone, .15, 0, .03, 0).scale.set(1.18, 1, 1);      // round cartoon cat: pointed ears, huge eyes, whiskers
       for (const x of [-1, 1]) { cone(H, tone, .05, .1, x * .1, .19, -.01).rotation.z = x * -.3; ball(H, white, .05, x * .06, .05, .105).scale.set(1, 1.15, .7); ball(H, black, .02, x * .055, .045, .14);
         for (const y of [0, .025]) hb(H, black, .07, .004, .004, x * .19, -.02 + y, .06).rotation.z = x * (y ? .15 : -.1); }
@@ -5320,24 +5371,80 @@ function updatePlayer(dt) {
   if (P.hp <= 35) { heartT -= dt; if (heartT <= 0) { heartT = .85; sfx.heart(); } }
 }
 // ----- third-person view: the camera sits behind your right shoulder and your own character is drawn, moving the way other players see it -----
-const tp = { on: false, ph: 0, kick: 0, d: 3, side: .5, up: 1.62 };
-function thirdPerson(dt) {
-  const on = (state === 'play' || state === 'inv') && !P.drive && !P.fin && !P.revB && !P.dead;
-  if (!on) { if (tp.on) { tp.on = false; if (!P.fin && !P.revB) { hero.visible = false; hero.position.set(0, 0, 0); hero.rotation.set(0, 0, 0); if (hero.userData.rig) applyPose(hero.userData.rig, {}); } } return; }
-  tp.on = true; tp.kick = Math.max(0, tp.kick - dt * 8);
-  const spd = P.moving > .1 ? (P.sprinting ? 6.6 : 3.4 * Math.min(1, P.moving)) : 0; tp.ph += spd * dt * 2.3;
-  const ads = aimK > .3, gunUp = !P.sprinting || ads || tp.kick > 0;      // the gun stays shouldered and pointing where you look, except in a full sprint
-  const v = { slide: P.slideT > 0 ? 1 : 0, kneel: 0, heal: 0, vault: P.vault ? { t: P.vault.t } : null, jump: P.air ? 1 : 0, melT: meleeT > 0 ? Math.min(.32, meleeT) : 0, aim: gunUp ? 1 : 0, crouch: P.crouch ? 1 : 0, kick: tp.kick, flinch: 0, spd, ph: tp.ph, t: T, slot: 0, revI: save.rev };
-  let pose = P.down ? downPose(T) : botPose(v);
-  if (!P.down && !v.slide && !v.vault) {            // the whole upper body tips with your view, so the barrel lines up with the crosshair
-    const pt = clamp(P.pitch + kick, -1.1, 1.1);
-    pose = mixP(pose, gunUp && !v.melT ? { ux: (v.crouch ? .22 : .05) - pt * .92, hx: .06 + pt * .12, sRx: -1.22 - tp.kick * .06, eR: -.22 - tp.kick * .2, sLx: -1.28, sLz: -.3, eL: -.42 } : { ux: (pose.ux || 0) - pt * .4, hx: (pose.hx || 0) - pt * .3 });
-    if (gunUp && reloading && !v.melT) pose = mixP(pose, { sLx: -.7, eL: -1.5, sRx: -.9, eR: -.9 });
+const tp = { on: false, ph: 0, kick: 0, d: 3, side: .5, up: 1.62, mv: 0, run: 0, land: 0, wasAir: false, yaw: 0, turn: 0, cur: {}, snap: true };
+const HOLD = { sRx: -1.22, eR: -.22, sLx: -1.28, sLz: -.3, eL: -.42 }, MHOLD = { sRx: -.9, eR: -1.1, sLx: -.7, eL: -1.3 };
+const RELK = [[0, HOLD],                          // magazine change: gun in and tilted, old magazine out, hand to the pouch, new one up, seated, charged
+  [.12, { sRx: -1, eR: -.75, sRz: -.1, sLx: -1.1, sLz: -.3, eL: -.9, gs: .35, hx: .22 }], [.3, { sRx: -1, eR: -.75, sRz: -.1, sLx: -.25, sLz: .1, eL: -1.2, gs: .35, hx: .3 }],
+  [.5, { sRx: -1, eR: -.75, sRz: -.1, sLx: -.2, sLz: .15, eL: -1.5, gs: .35, hx: .3 }], [.7, { sRx: -1, eR: -.75, sRz: -.1, sLx: -1.05, sLz: -.3, eL: -1, gs: .35, hx: .22 }],
+  [.8, { sRx: -1.02, eR: -.7, sRz: -.1, sLx: -1.15, sLz: -.3, eL: -.8, gs: .3, hx: .2 }], [.9, { sRx: -1.1, eR: -.5, sLx: -1.3, sLz: -.35, eL: -.6, gs: .1 }], [1, HOLD]];
+const MELK = [[0, MHOLD], [.22, { sRx: -2.5, sRz: -.45, eR: -1.2, uy: .55, ux: -.08, sLx: -.7, eL: -1.1 }], [.5, { sRx: -1.05, sRz: .5, eR: -.12, uy: -.7, ux: .3, sLx: -.5, eL: -1.2, y: -.05 }],
+  [.72, { sRx: -.6, sRz: .6, eR: -.5, uy: -.8, ux: .25, sLx: -.5, eL: -1.2 }], [1, MHOLD]];      // wind up, cut across, follow through, recover
+function heroPose(dt, ads) {                      // the pose your character should be in right now, built in layers: legs, then whatever the arms are doing
+  if (P.down) return downPose(T);
+  if (P.vault) return P.vault.t < .3 ? VF : mixP(VF, { rx: .9 });
+  const w = W[cur], sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), mv = P.moving > .1 ? Math.min(1, P.moving) : 0, add = (o, k, v) => { o[k] = (o[k] || 0) + v; };
+  const fwd = mv ? -(sy * (P.vx || 0) + cy * (P.vz || 0)) : 0, str = mv ? clamp(P.strafe || 0, -1, 1) : 0, back = fwd < -.3 ? -1 : 1;
+  const spd = mv ? (P.sprinting ? 6.6 : (P.crouch ? 2.4 : 3.4) * mv) : 0;
+  tp.ph += spd * dt * 2.3 * back; tp.mv += (mv - tp.mv) * Math.min(1, dt * 9); tp.run += ((P.sprinting ? 1 : 0) - tp.run) * Math.min(1, dt * 7);
+  tp.airT = P.air ? (tp.airT || 0) + dt : 0; if (tp.wasAir > .22 && !P.air) tp.land = 1; tp.wasAir = tp.airT; tp.land = Math.max(0, tp.land - dt * 3.2);      // only a real jump or drop gets a landing, not a stair
+  { let dy = P.yaw - tp.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); tp.yaw = P.yaw; tp.turn += (clamp(dy / Math.max(dt, .004), -6, 6) - tp.turn) * Math.min(1, dt * 8); }
+  if (P.slideT > 0) return mixP(SLIDEP, { sRx: -1.2, eR: -.4, sLx: .3, sLz: .8, eL: -.3, uy: -.12 });      // one hand trails on the ground, the gun stays pointed ahead
+  const s = Math.sin(tp.ph), c = Math.cos(tp.ph), m = tp.mv, run = tp.run, ck = crouchK, side = Math.abs(str) > .5 && Math.abs(fwd) < .4 ? 1 : 0, pose = {};
+  // ----- legs and hips -----
+  if (P.air) {                                    // tucked on the way up, reaching for the ground on the way down
+    const up = clamp(((P.vy || 0) + 3) / 7, 0, 1), L = (a, b) => b + (a - b) * up;
+    pose.hLx = L(-.8, -.4); pose.kL = L(1.25, .5); pose.hRx = L(-.3, .12); pose.kR = L(.95, .4); pose.ux = L(.1, -.06); pose.rz = -str * .05;
+  } else {
+    const A = (.46 + run * .5) * m * (P.crouch ? .75 : 1) * (back < 0 ? .7 : 1) * (side ? .55 : 1), sw = x => Math.max(0, x), idle = 1 - m;
+    pose.hLx = s * A - (.04 + run * .1) * m - .06 * idle; pose.kL = .1 * m + sw(c) * A * 1.6 + sw(-c) * A * .22 + .1 * idle;       // the knee folds as the leg swings through and gives a little as it takes weight
+    pose.hRx = -s * A - (.04 + run * .1) * m + .05 * idle; pose.kR = .1 * m + sw(-c) * A * 1.6 + sw(c) * A * .22 + .06 * idle;
+    pose.hLz = -str * m * (.08 + .08 * s); pose.hRz = -str * m * (.08 - .08 * s);                                                 // side-stepping opens the legs
+    pose.y = -(.5 - .5 * Math.cos(2 * tp.ph)) * (.03 + run * .035) * m + Math.sin(T * 1.6) * .004 * idle;                         // the body rises over each planted foot
+    pose.rz = s * .03 * m - str * .045 * m - clamp(tp.turn, -4, 4) * .012 + Math.sin(T * .45) * .012 * idle;                      // hip sway, lean into a strafe and into a turn
+    pose.ux = (.07 + run * .24) * m * (back < 0 ? -.5 : 1) + Math.sin(T * 1.6 + 1) * .012;                                        // lean into the run, and breathe
+    pose.uz = c * .03 * m;
+    if (ck > .01) { pose.y -= .18 * ck; pose.hLx -= .7 * ck; pose.kL += 1.3 * ck; pose.hRx -= .7 * ck; pose.kR += 1.3 * ck; pose.ux += .17 * ck; }
+    if (tp.land > 0) { const q = Math.sin((1 - tp.land) * Math.PI); pose.y -= .13 * q; pose.hLx -= .45 * q; pose.hRx -= .45 * q; pose.kL += .85 * q; pose.kR += .85 * q; pose.ux += .16 * q; }      // knees soak up the landing
+  }
+  const twist = P.air ? 0 : s * (.05 + run * .1) * m, pt = clamp(P.pitch + kick, -1.1, 1.1);
+  // ----- arms, shoulders and head -----
+  if (meleeT > 0) {                               // a real swing: wind up, cut across, follow through
+    const k = clamp(1 - meleeT / Math.max(.05, meleeDur), 0, 1), a = poseAt({ k: MELK }, k), sd = meleeSide || 1, st = Math.sin(k * Math.PI) * (1 - m);
+    a.uy = (a.uy || 0) * sd; a.sRz = (a.sRz || 0) * sd; a.ux = (a.ux || 0) - pt * .4; Object.assign(pose, a, { ux: (pose.ux || 0) + a.ux, y: (pose.y || 0) + (a.y || 0) });
+    if (!P.air) { pose.hLx -= .35 * st; pose.kL += .35 * st; pose.hRx += .2 * st; }      // a short step into it
+    pose.hy = -(a.uy || 0) * .5;
+  } else if (w && w.melee) {
+    Object.assign(pose, MHOLD); add(pose, 'ux', -pt * .5); pose.uy = twist; pose.hx = pt * .3; pose.sRx += s * .12 * m; pose.sLx -= s * .12 * m;
+  } else if (reloading) {
+    let a;
+    if (w.shells) { const q = ((T - relStart - relLead) / Math.max(.1, relPer)) % 1, f = Math.sin(clamp(q, 0, 1) * TAU); a = { sRx: -1, eR: -.75, sRz: -.1, gs: .3, hx: .25, sLx: -.7 - .4 * f, sLz: -.1, eL: -1.2 + .25 * f }; }      // one shell at a time
+    else a = poseAt({ k: RELK }, clamp(1 - (reloadEnd - T) / Math.max(.1, reloadDur), 0, 1));
+    Object.assign(pose, a, { ux: (pose.ux || 0) + (P.crouch ? .05 : .05) - pt * .6 }); pose.uy = twist * .4; pose.hx = (a.hx || 0) + pt * .1;
+  } else if (P.sprinting && !ads && tp.kick <= 0 && !P.air) {      // sprinting: the gun comes down across the chest and the arms pump
+    Object.assign(pose, { sRx: -.55 + s * .22, eR: -1.45, sRz: .1, sLx: -.75 - s * .22, sLz: -.3, eL: -1.4, hx: -.12 }); pose.uy = twist; pose.hy = -twist * .6;
+  } else {                                        // gun up: the whole upper body tips with your view, so the barrel lines up with the crosshair
+    Object.assign(pose, HOLD); pose.sRx -= tp.kick * .06; pose.eR -= tp.kick * .2;
+    if (w && (w.kind === 'pistol' || w.kind === 'mpistol' || w.kind === 'magnum')) { pose.sLx = -1.2; pose.sLz = -.48; pose.eL = -.8; }      // handguns: the support hand wraps the grip instead of reaching for a fore-end
+    pose.ux = (pose.ux || 0) * .35 + .05 + ck * .16 - pt * .92 - tp.kick * .03; pose.hx = .06 + pt * .12; pose.uy = twist * .3; pose.hy = -twist * .3 - aimK * .08; pose.hz = aimK * .1;      // cheek to the stock when you aim
   }
   if (P.doorT > 0) {                               // opening or closing a door: the free hand goes out, pushes, and comes back
     P.doorT -= dt; const k = Math.sin(Math.PI * clamp(1 - P.doorT / .55, 0, 1)), q = 1 - k;
-    if (!P.down) pose = mixP(pose, { sLx: (pose.sLx || 0) * q - 1.6 * k, sLz: (pose.sLz || 0) * q + .12 * k, eL: (pose.eL || 0) * q - .1 * k, uy: (pose.uy || 0) - .3 * k, ux: (pose.ux || 0) + .1 * k });
+    Object.assign(pose, { sLx: (pose.sLx || 0) * q - 1.6 * k, sLz: (pose.sLz || 0) * q + .12 * k, eL: (pose.eL || 0) * q - .1 * k, uy: (pose.uy || 0) - .3 * k, ux: (pose.ux || 0) + .1 * k });
   }
+  return pose;
+}
+function heroBlend(pose, dt) {                    // every joint eases toward its target, so changing from one move to another never snaps
+  const c = tp.cur, a = tp.snap ? 1 : 1 - Math.exp(-(meleeT > 0 ? 34 : 24) * Math.min(dt, .05)); tp.snap = false;
+  for (const k in c) if (!(k in pose)) { c[k] += (0 - c[k]) * a; if (Math.abs(c[k]) < 1e-4) delete c[k]; }
+  for (const k in pose) { const v = pose[k]; if (typeof v !== 'number' || !isFinite(v)) continue; const v0 = c[k] || 0; c[k] = v0 + (v - v0) * a; }
+  return c;
+}
+function thirdPerson(dt) {
+  const on = (state === 'play' || state === 'inv') && !P.drive && !P.fin && !P.revB && !P.dead;
+  if (!on) { if (tp.on) { tp.on = false; tp.snap = true; heroArms(); if (!P.fin && !P.revB) { hero.visible = false; hero.position.set(0, 0, 0); hero.rotation.set(0, 0, 0); if (hero.userData.rig) applyPose(hero.userData.rig, {}); } } return; }
+  tp.on = true; tp.kick = Math.max(0, tp.kick - dt * 8);
+  const ads = aimK > .3; heroArms();
+  const pose = heroBlend(heroPose(dt, ads), dt);
   hero.visible = true; hero.position.set(P.x, P.y, P.z); hero.rotation.set(0, P.yaw + Math.PI, 0); if (hero.userData.rig) applyPose(hero.userData.rig, pose);
   const pit = P.pitch + kick, cp = Math.cos(pit), fx = -Math.sin(P.yaw) * cp, fy = Math.sin(pit), fz = -Math.cos(P.yaw) * cp, rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), kq = Math.min(1, dt * 9);
   tp.side += ((ads ? .62 : .5) - tp.side) * kq; tp.up += ((P.down ? .9 : P.crouch ? 1.25 : ads ? 1.55 : 1.62) - tp.up) * kq;      // aiming slides the camera out over the shoulder and in close
