@@ -5469,7 +5469,7 @@ try {
 requestAnimationFrame(frame);
 try {                                           // lets a phone browser add the game to the home screen and reopen it full screen, even offline
   const add = (tag, at) => { const el = document.createElement(tag); for (const k in at) el.setAttribute(k, at[k]); document.head.appendChild(el); };
-  add('link', { rel: 'manifest', href: 'manifest.webmanifest' }); add('link', { rel: 'apple-touch-icon', href: 'icon-192.png' });
+  add('link', { rel: 'manifest', href: 'manifest.webmanifest' }); add('link', { rel: 'apple-touch-icon', href: 'apple-touch-icon.png' }); add('link', { rel: 'icon', type: 'image/png', href: 'favicon.png' });
   add('meta', { name: 'theme-color', content: '#0a1517' }); add('meta', { name: 'mobile-web-app-capable', content: 'yes' }); add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }); add('meta', { name: 'apple-mobile-web-app-title', content: 'Project Zombie' });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 } catch (e) {}
