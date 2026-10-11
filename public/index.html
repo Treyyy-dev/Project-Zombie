@@ -608,7 +608,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <section><h3>Intro / outro</h3><p>Use any of these as your match intro, your end-screen outro, or both.</p><div class="sh-grid" id="shIntros"></div></section>
           <section><h3>Finishers</h3><p>Knock an enemy player down, walk up and finish them with a five-second move. Nothing can hurt you while it plays.</p><div class="sh-grid" id="shFins"></div></section>
           <section><h3>Revives</h3><p>How you bring a teammate back. It plays for the ten seconds a revive takes.</p><div class="sh-grid" id="shRevs"></div></section>
-          <section><h3>Auras</h3><p>A glow around your character. Other players see it in the lobby and in matches.</p><div class="sh-grid" id="shAuras"></div></section>
+          <section><h3>Auras</h3><p>A glowing outline around your character. Other players see it in the lobby and in matches.</p><div class="sh-grid" id="shAuras"></div></section>
         </div>
         <div class="sh-view">
           <div class="sh-buy"><u class="rar" id="shRar"></u><b id="shName"></b><span id="shDesc"></span><button class="go small" id="btnBuy" type="button">Buy</button></div>
@@ -1407,7 +1407,7 @@ function rollLoot(table) { let r = Math.random(); for (const [k, p] of LOOT_TABL
 function resetTown() {                          // put every door, window, drawer and car back for a new match
   for (const o of town.cull) o.visible = true; cullT = 0;
   town.panes.forEach((p, i) => setPane(i, false));
-  for (const D of town.doors) { D.a = 0; D.target = 0; D.broken = false; D.fall = 0; D.hp = 5; D.col.off = false; D.pv.rotation.set(0, D.base, 0); }
+  for (const D of town.doors) { D.a = 0; D.v = 0; D.wait = 0; D.target = 0; D.broken = false; D.fall = 0; D.hp = 5; D.col.off = false; D.pv.rotation.set(0, D.base, 0); }
   for (const s of town.stashes) { s.k = 0; s.open = false; s.done = false; s.loot = rollLoot(s.table); s.pv.rotation.y = s.ry; s.pv.position.x = s.bx; s.pv.position.z = s.bz; }
   for (const c of town.cars) { c.x = c.x0; c.z = c.z0; c.yaw = c.yaw0; c.v = 0; c.hp = 260; c.dead = false; c.driver = null; c.stuck = 0; c.col.off = false; c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.yaw; carCol(c); }
 }
@@ -1426,7 +1426,13 @@ function updateTown(dt) {
   cullTown(dt, camera.position.x, camera.position.z);
   for (const D of town.doors) {
     if (D.broken) { if (D.fall < 1) { D.fall = Math.min(1, D.fall + dt * 3.4); D.pv.rotation.set(D.fallA * D.fall * D.fall, D.base, 0); } continue; }
-    if (Math.abs(D.a - D.target) > .002) { D.a = damp(D.a, D.target, Math.min(1, dt * 7)); D.pv.rotation.y = D.base + D.a * D.openA; D.col.off = D.a > .35; }
+    if (D.wait > 0) { D.wait -= dt; continue; }                                   // your hand reaches the door first
+    const dv = D.v || 0;
+    if (Math.abs(D.a - D.target) > .002 || Math.abs(dv) > .02) {                   // a sprung swing: it overshoots a little and settles
+      const h = Math.min(dt, .034); D.v = dv + ((D.target - D.a) * 70 - dv * 9.5) * h; D.a += D.v * h;
+      if (D.a < 0) { D.a = 0; if (D.v < -1.2) { const d = Math.hypot(D.x - P.x, D.z - P.z); if (d < 22) sNoise({ dur: .11, f0: 170, f1: 60, type: 'lowpass', q: 1, gain: .34 * (1 - d / 22) }); } D.v = -D.v * .2; }      // it bumps the frame when it shuts
+      if (D.a > 1.1) { D.a = 1.1; D.v = -D.v * .3; }
+      D.pv.rotation.y = D.base + D.a * D.openA; D.col.off = D.a > .35; }
   }
   for (const s of town.stashes) if (s.open && s.k < 1) {
     s.k = Math.min(1, s.k + dt * 2.8);
@@ -2029,6 +2035,11 @@ const REVIVES = [
   SK('Darwin', 900, 0xf28a1e, 0xf28a1e, 'fish', { t: 0xf28a1e, h: 0xf28a1e, b: 0x3aa64a, g: 0xf28a1e, sz: .72 });
   SK('Anais', 900, 0xf08a2a, 0xf4a8c8, 'bunny', { t: 0xf4a8c8, h: 0xf4a8c8, x: 'robe', a: 0xf08a2a, b: 0xf4a8c8, g: 0xf4a8c8, sz: .62 });
   WR('Elmore Blue', 300, { col: 0x4aa8e8 }); ML('Lunch Tray', 700, 14, 78, .46, 1.9, 1, 1.5, 'hip', '78 damage · biggest knockback');
+  // ----- Saiyan Series: a fan-made set in the style of the anime -----
+  SK('Goku', 900, 0xf2801e, 0xf2801e, 'bare', { hs: 'spiky', t: 0xf0c49e, h: 0x0e0c0c, x: 'sash', a: 0x2a4aa8, b: 0x2a4aa8, g: 0x2a4aa8 });
+  SK('Vegeta', 900, 0x24388a, 0x24388a, 'bare', { hs: 'flame', t: 0xf0c49e, h: 0x0e0c0c, x: 'kit pads', v: 0xf0f0e8, b: 0xf4f4f0, g: 0xf4f4f0, sz: .94 });
+  SK('Trunks', 900, 0x2a3a8a, 0x2a2a30, 'bare', { hs: 'bob', t: 0xf0c49e, h: 0xb8a0e0, x: 'zip buckle', a: 0x101014, b: 0xe8c040, g: 's' });
+  WR('Kame Orange', 300, { col: 0xf2801e }); ML('Future Sword', 900, 21, 122, .55, 2.5, 2, .4, 'back', '122 damage · long, hits two');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2036,6 +2047,7 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Saiyan Series', pin: 1, skins: ['Goku', 'Vegeta', 'Trunks'].map(sI), wrap: wI('Kame Orange'), melee: mI('Future Sword'), intro: Math.max(0, aI('Flex')), fin: fI('Haymaker'), rev: rI('Chest Pump'), aura: 'Super' });
   BUNDLES.push({ name: 'Smith House Series', pin: 1, skins: ['Mr. Poopybutthole', 'Summer', 'Jerry'].map(sI), wrap: wI('Smith Yellow'), melee: mI('Ooh-Wee Baton'), intro: Math.max(0, aI('Big Wave')), fin: fI('Haymaker'), rev: rI('Pep Talk') });
   BUNDLES.push({ name: 'Elmore Series', pin: 1, skins: ['Gumball', 'Darwin', 'Anais'].map(sI), wrap: wI('Elmore Blue'), melee: mI('Lunch Tray'), intro: Math.max(0, aI('Cartwheel')), fin: fI('Moon Shot'), rev: rI('Chest Pump') });
   BUNDLES.push({ name: 'Portal Series', pin: 1, skins: ['Rick', 'Morty', 'Space Beth'].map(sI), wrap: wI('Portal Green'), melee: mI('Plumbus'), intro: Math.max(0, aI('Shrug')), fin: fI('Axe Handle'), rev: rI('Slap Awake') });
@@ -2043,7 +2055,6 @@ const REVIVES = [
   BUNDLES.push({ name: 'Thousand Sunny Series', pin: 1, skins: ['Chopper', 'Robin', 'Brook'].map(sI), wrap: wI('Sakura Pink'), melee: mI('Soul Cane'), intro: Math.max(0, aI('Salsa')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Grand Line Series', pin: 1, skins: ['Luffy', 'Zoro', 'Sanji'].map(sI), wrap: wI('Straw Gold'), melee: mI('Wado Katana'), intro: Math.max(0, aI('Raise the Roof')), fin: fI('Haymaker'), rev: rI('Canteen') });
   BUNDLES.push({ name: 'Adventure Series', pin: 1, skins: ['Finn', 'Jake', 'Marceline'].map(sI), wrap: wI('Ooo Sky'), melee: mI("Hero's Sword"), intro: Math.max(0, aI('Victory Jump')), fin: fI('Flash Kick'), rev: rI('Pep Talk') });
-  for (const b of BUNDLES) if (b.pin) for (const i of b.skins) if (SKINS[i]) SKINS[i].cel = 1;      // every crossover character is cel shaded
 }
 // ----- battle pass: Season Beta. 100 free tiers and 100 paid ones, 100 XP a tier -----
 const BP_COST = 10000, BP_XP = 100, BP = { free: [], paid: [] };
@@ -2079,19 +2090,19 @@ const AURAS = [                               // a glow around your character: k
   { name: 'Rainbow', price: 3000, c: 0xff3a6a, c2: 0x3affd0, k: 'rainbow' }
 ];
 const auraMats = {}, auraGeo = {};
-function mkAura(A) {                            // a floor glow, two rings, a faint column and a handful of sparks; everything is additive and cheap
-  const key = AURAS.indexOf(A), few = cfg.perf || cfg.q <= 1, n = few ? 5 : A.k === 'power' ? 12 : 9;
+function mkAura(A) {                            // floor glow and sparks; the outline itself is added to the character's own pieces by setAura
+  const key = AURAS.indexOf(A), few = cfg.perf || cfg.q <= 1, n = few ? 4 : A.k === 'power' ? 10 : 7;
+  const line = (w, op) => { const m = Basic({ color: A.c, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide, fog: false });
+    m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize( normal ) * ' + w.toFixed(3) + ';'); };      // push every face out along its normal: the back faces show as a rim
+    m.customProgramCacheKey = () => 'auraLine' + w; return m; };
   const M = auraMats[key] || (auraMats[key] = {
-    floor: Basic({ map: glowTex, color: A.c, transparent: true, opacity: .6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
-    ring: Basic({ color: A.c2, transparent: true, opacity: .7, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
-    shell: Basic({ color: A.c, transparent: true, opacity: A.k === 'power' ? .13 : .075, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }),
+    floor: Basic({ map: glowTex, color: A.c, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
+    o1: line(.022, .7), o2: line(.055, .28),
     a: new THREE.SpriteMaterial({ map: glowTex, color: A.c, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }),
     b: new THREE.SpriteMaterial({ map: glowTex, color: A.c2, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }) });
-  if (!auraGeo.floor) { auraGeo.floor = new THREE.CircleGeometry(1.05, 28); auraGeo.ring = new THREE.TorusGeometry(.6, .022, 6, 36); auraGeo.shell = new THREE.CylinderGeometry(.5, .62, 2.05, 20, 1, true); }
-  const g = new THREE.Group(), u = { A, key, rings: [], sparks: [], M, last: -1 };
+  if (!auraGeo.floor) auraGeo.floor = new THREE.CircleGeometry(.9, 28);
+  const g = new THREE.Group(), u = { A, key, sparks: [], M, last: -1 };
   const floor = new THREE.Mesh(auraGeo.floor, M.floor); floor.rotation.x = -Math.PI / 2; floor.position.y = .045; floor.renderOrder = 2; floor.frustumCulled = false; g.add(floor); u.floor = floor;
-  for (let k = 0; k < 2; k++) { const r = new THREE.Mesh(auraGeo.ring, M.ring); r.rotation.x = Math.PI / 2; r.renderOrder = 2; g.add(r); u.rings.push(r); }
-  const shell = new THREE.Mesh(auraGeo.shell, M.shell); shell.position.y = 1.02; shell.renderOrder = 2; g.add(shell); u.shell = shell;
   for (let k = 0; k < n; k++) { const sp = new THREE.Sprite(k % 2 ? M.b : M.a); sp.renderOrder = 3; g.add(sp); u.sparks.push(sp); }
   g.userData.aura = u;
   floor.onBeforeRender = () => { const t = performance.now() / 1000; if (t - u.last > .012) auraPose(g, t); };      // only animated while it is actually on screen
@@ -2100,44 +2111,32 @@ function mkAura(A) {                            // a floor glow, two rings, a fa
 }
 function auraPose(g, t) {                       // where everything sits at time t: nothing is stored between frames
   const u = g.userData.aura, A = u.A, k = A.k, n = u.sparks.length; u.last = t;
-  const pulse = .5 + .5 * Math.sin(t * (k === 'storm' || k === 'power' ? 9 : 2.6));
+  const pulse = .5 + .5 * Math.sin(t * (k === 'storm' || k === 'power' ? 9 : 2.6)), fl = k === 'storm' ? (Math.sin(t * 31) > -.2 ? 1 : .35) : 1;
   u.floor.scale.setScalar(.9 + pulse * .18);
-  for (let r = 0; r < 2; r++) { const q = (t * (k === 'power' ? .9 : .45) + r * .5) % 1, m = u.rings[r]; m.position.y = .08 + (k === 'fall' ? 1 - q : q) * 1.75; m.scale.setScalar((k === 'orbit' ? 1.05 : 1) * (1 - q * .28)); m.rotation.z = t * 1.4 + r; m.visible = k !== 'storm' || Math.sin(t * 23 + r * 2) > -.4; }
-  u.shell.scale.set(1 + pulse * .06, 1 + (k === 'power' ? pulse * .08 : 0), 1 + pulse * .06); u.shell.rotation.y = t * .6;
-  if (k === 'rainbow') { const h = (t * .12) % 1; u.M.floor.color.setHSL(h, 1, .55); u.M.shell.color.setHSL(h, 1, .55); u.M.a.color.setHSL(h, 1, .6); u.M.b.color.setHSL((h + .33) % 1, 1, .6); u.M.ring.color.setHSL((h + .5) % 1, 1, .65); }
+  u.M.o1.opacity = (.5 + pulse * .35) * fl; u.M.o2.opacity = (.16 + pulse * (k === 'power' ? .3 : .18)) * fl;      // the outline breathes
+  if (k === 'rainbow') { const h = (t * .12) % 1; u.M.floor.color.setHSL(h, 1, .55); u.M.o1.color.setHSL(h, 1, .55); u.M.o2.color.setHSL((h + .12) % 1, 1, .55); u.M.a.color.setHSL(h, 1, .6); u.M.b.color.setHSL((h + .33) % 1, 1, .6); }
   for (let i = 0; i < n; i++) {
     const sp = u.sparks[i], f = i / n; let x, y, z, sc;
-    if (k === 'orbit') { const a = t * 1.7 + f * 6.283, tilt = i % 2 ? .5 : -.5; x = Math.cos(a) * .7; z = Math.sin(a) * .7; y = 1.05 + Math.sin(a) * tilt + Math.sin(t * 2 + i) * .06; sc = .2; }
-    else if (k === 'storm') { const j = Math.floor(t * 11 + i * 3.7), h1 = Math.sin(j * 12.9898 + i * 78.233) * 43758.5453, h2 = Math.sin(j * 39.3468 + i * 11.135) * 24634.6345, a = (h1 - Math.floor(h1)) * 6.283; x = Math.cos(a) * .62; z = Math.sin(a) * .62; y = .2 + (h2 - Math.floor(h2)) * 1.7; sc = .12 + ((t * 11 + i * 3.7) % 1 < .45 ? .2 : 0); }
-    else { const sp_ = k === 'power' ? 1.5 : k === 'fall' ? .32 : .6, q0 = (t * sp_ + f + (i * .37) % 1) % 1, q = k === 'fall' ? 1 - q0 : q0, a = i * 2.4 + t * (k === 'fall' ? .5 : 1.1), rad = (k === 'power' ? .72 : .58) - q * (k === 'fall' ? 0 : .22) + Math.sin(t * 3 + i) * .05;
-      x = Math.cos(a) * rad; z = Math.sin(a) * rad; y = .05 + q * (k === 'power' ? 2.5 : 2.05); sc = (k === 'power' ? .3 : .22) * Math.sin(Math.PI * q0); }
+    if (k === 'orbit') { const a = t * 1.7 + f * 6.283, tilt = i % 2 ? .5 : -.5; x = Math.cos(a) * .6; z = Math.sin(a) * .6; y = 1.05 + Math.sin(a) * tilt + Math.sin(t * 2 + i) * .06; sc = .14; }
+    else if (k === 'storm') { const j = Math.floor(t * 11 + i * 3.7), h1 = Math.sin(j * 12.9898 + i * 78.233) * 43758.5453, h2 = Math.sin(j * 39.3468 + i * 11.135) * 24634.6345, a = (h1 - Math.floor(h1)) * 6.283; x = Math.cos(a) * .5; z = Math.sin(a) * .5; y = .2 + (h2 - Math.floor(h2)) * 1.7; sc = .09 + ((t * 11 + i * 3.7) % 1 < .45 ? .15 : 0); }
+    else { const sp_ = k === 'power' ? 1.5 : k === 'fall' ? .32 : .6, q0 = (t * sp_ + f + (i * .37) % 1) % 1, q = k === 'fall' ? 1 - q0 : q0, a = i * 2.4 + t * (k === 'fall' ? .5 : 1.1), rad = (k === 'power' ? .6 : .48) - q * (k === 'fall' ? 0 : .2) + Math.sin(t * 3 + i) * .05;
+      x = Math.cos(a) * rad; z = Math.sin(a) * rad; y = .05 + q * (k === 'power' ? 2.4 : 2.0); sc = (k === 'power' ? .22 : .15) * Math.sin(Math.PI * q0); }
     sp.position.set(x, y, z); sp.scale.set(sc, k === 'power' ? sc * 2.4 : sc, 1);
   }
 }
-function setAura(g, i) {                        // puts aura i on a character (0 or nothing takes it off)
+function setAura(g, i) {                        // puts aura i on a character (0 or nothing takes it off): every solid piece gets a glowing shell just outside it
   const old = g.userData.auraG; if (old) { g.remove(old); g.userData.auraG = null; }
+  for (const o of g.userData.auraInk || []) if (o.parent) o.parent.remove(o);
+  g.userData.auraInk = [];
   i = i | 0; if (i <= 0 || !AURAS[i]) return;
-  try { const a = mkAura(AURAS[i]); g.add(a); g.userData.auraG = a; } catch (e) {}
+  try {
+    const list = []; g.traverse(o => { if (o.isMesh && !o.userData.ink && o.material && !Array.isArray(o.material) && !o.material.transparent && o.geometry && o.geometry.attributes && o.geometry.attributes.normal) list.push(o); });
+    const a = mkAura(AURAS[i]), M = a.userData.aura.M, two = !(cfg.perf || cfg.q <= 1);
+    for (const m of list) for (const mat of two ? [M.o1, M.o2] : [M.o1]) { const o = new THREE.Mesh(m.geometry, mat); o.userData.ink = 1; o.castShadow = false; o.receiveShadow = false; o.renderOrder = 2; m.add(o); g.userData.auraInk.push(o); }
+    g.add(a); g.userData.auraG = a;
+  } catch (e) {}
 }
-// ----- cel shading for the crossover characters: flat bands of light and a dark outline, like a cartoon -----
-let celRamp = null, celLine = null; const celCache = new Map();
-function celMat(m) {                            // the toon twin of a normal material (made once, then shared)
-  let t = celCache.get(m); if (t) return t;
-  if (!celRamp) { celRamp = new THREE.DataTexture(new Uint8Array([118, 108, 168, 255, 255, 255, 255, 255]), 2, 1, THREE.RGBAFormat); celRamp.minFilter = celRamp.magFilter = THREE.NearestFilter; celRamp.generateMipmaps = false; celRamp.needsUpdate = true; }
-  t = new THREE.MeshToonMaterial({ gradientMap: celRamp, map: m.map || null, transparent: !!m.transparent, opacity: m.opacity === undefined ? 1 : m.opacity, side: m.side });
-  t.color.copy(m.color); { const h = {}; t.color.getHSL(h); if (h.s > .04) t.color.setHSL(h.h, Math.min(1, h.s * 1.3 + .06), Math.min(.92, h.l * 1.12 + .015)); }
-  t.emissive.copy(t.color); t.emissiveIntensity = .22;      // a little self-light: anime flats never sink to black
-  celCache.set(m, t); return t;
-}
-function celMats(root, skip) {                  // swaps every lit material on a character for its toon twin; the gun keeps its own (wraps animate it)
-  root.traverse(o => { if (!o.isMesh || !o.material || !o.material.isMeshPhongMaterial) return; for (let q = o; q; q = q.parent) if (q === skip) return; o.material = celMat(o.material); });
-}
-function celOutline(root) {                     // a slightly larger back-facing copy of each piece drawn in near-black gives the ink line
-  if (!celLine) { celLine = new THREE.MeshBasicMaterial({ color: 0x0a0612, side: THREE.BackSide, fog: true });
-    celLine.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize( normal ) * 0.017;'); }; }
-  const list = []; root.traverse(o => { if (o.isMesh && o.material && o.material.isMeshToonMaterial && !o.material.transparent && o.geometry && o.geometry.attributes && o.geometry.attributes.normal) list.push(o); });
-  for (const m of list) { const o = new THREE.Mesh(m.geometry, celLine); o.castShadow = false; o.receiveShadow = false; o.userData.ink = 1; m.add(o); }
-}
+const bAura = b => b.aura ? AURAS.findIndex(q => q.name === b.aura) : -1;      // a bundle may carry an aura, named
 let auraPrev = -1;
 function buildHero() { buildChar(hero, heroUp, heroHead, SKINS[prevSkin >= 0 ? prevSkin : save.skin], WRAPS[prevWrap >= 0 ? prevWrap : save.wrap], true); setAura(hero, auraPrev >= 0 ? auraPrev : save.aura); }
 function buildChar(hero, heroUp, heroHead, S, wr, main) {
@@ -2272,9 +2271,6 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     hb(H, black, .022, .014, .012, -.036, .018, .103); hb(H, black, .022, .014, .012, .036, .018, .103);
     if (!low) { for (const x of [-1, 1]) { ball(H, tone, .024, x * .104, -.005, -.005).scale.set(.5, 1, .8); hb(H, hair, .04, .009, .012, x * .036, .042, .101).rotation.z = x * -.12; hb(H, white, .008, .008, .004, x * .036 + .005, .02, .1095); }
       hb(H, tone, .024, .04, .03, 0, -.012, .108).rotation.x = -.2; hb(H, mk(0x6a3028, 4), .044, .008, .008, 0, -.062, .099); hb(H, tone, .07, .03, .03, 0, -.1, .07); }      // ears, brows, eye glints, nose, mouth, chin
-    if (S.cel && S.hd !== 'dog' && !fhas('shades') && !fhas('goggles') && !fhas('patch')) for (const x of [-1, 1]) {      // big anime eyes: white, coloured iris, pupil and a highlight
-      ball(H, white, .03, x * .041, .016, .092).scale.set(1, 1.3, .55); ball(H, mk(S.ey || 0x4a2e1a, 40), .019, x * .041, .012, .103).scale.set(1, 1.3, .5); ball(H, black, .01, x * .041, .01, .11).scale.set(1, 1.3, .5);
-      hb(H, Basic({ color: 0xffffff }), .009, .011, .004, x * .041 + .008, .026, .1145); hb(H, black, .062, .007, .01, x * .041, .05, .104).rotation.z = x * -.1; }
     if (!bald) halfCap(hair, .111, -.38);
     if (fhas('beard')) hb(H, hair, .13, .09, .075, 0, -.088, .052);
     if (fhas('stache')) hb(H, hair, .078, .018, .02, 0, -.04, .104);
@@ -2372,12 +2368,12 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     else if (S.hs === 'long') hb(H, hair, .2, .32, .05, 0, -.13, -.088);
     else if (S.hs === 'pomp') { const q = ball(H, hair, .075, 0, .125, .055); q.scale.set(1, .9, 1.35); ball(H, hair, .06, 0, .1, -.02); }      // tall swept-up quiff
     else if (S.hs === 'spiky') { for (const a of [-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2]) cone(H, hair, .042, .13, Math.sin(a) * .13, .03 + Math.cos(a) * .15, -.02).rotation.z = -a; for (const a of [-1, 0, 1]) cone(H, hair, .042, .12, Math.sin(a) * .09, .06 + Math.cos(a) * .08, -.13).rotation.set(-1.1, 0, -a * .6); }      // a ring of spikes
+    else if (S.hs === 'flame') { for (const [x, z, h] of [[0, 0, .27], [-.06, 0, .2], [.06, 0, .2], [0, -.06, .23], [-.045, -.055, .17], [.045, -.055, .17], [0, .05, .15]]) cone(H, hair, .052, h, x, .06 + h / 2, z - .01); }      // hair swept straight up to a point
     else if (S.hs === 'curly') { for (const [x, y, z] of [[-.09, .04, -.05], [.09, .04, -.05], [0, .06, -.1], [-.07, -.04, -.09], [.07, -.04, -.09], [0, -.06, -.1]]) ball(H, hair, .055, x, y, z); }
     else if (S.hs === 'bob') { hb(H, hair, .228, .17, .1, 0, -.03, -.06); hb(H, hair, .03, .15, .12, -.105, -.03, .0); hb(H, hair, .03, .15, .12, .105, -.03, .0); }
     else if (S.hs === 'bun') ball(H, hair, .052, 0, .11, -.075);
     else if (S.hs === 'braid') { hr(H, hair, .028, .02, [0, -.01, -.11], [.02, -.32, -.14], 6); ball(H, hair, .028, .02, -.33, -.14); }
   }
-  if (S.cel) { try { celMats(outer, rig.gun); if (main) celOutline(outer); } catch (e) {} }
 }
 hero.visible = false; scene.add(hero);hero.visible = false; scene.add(hero);
 
@@ -3031,7 +3027,7 @@ function interact() {
     const u = nearUse;
     if (u.t === 'finish') { startFin(P, u.o, save.fin); nearUse = null; return; }
     if (u.t === 'revive') { P.revB = P.revB === u.o ? null : u.o; nearUse = null; return; }
-    if (u.t === 'door') { u.o.target = u.o.target ? 0 : 1; sNoise({ dur: .18, f0: 500, f1: 220, type: 'bandpass', q: 2, gain: .22 }); }
+    if (u.t === 'door') { u.o.target = u.o.target ? 0 : 1; u.o.wait = .16; P.doorT = .55; sNoise({ dur: .18, f0: 500, f1: 220, type: 'bandpass', q: 2, gain: .22 }); }
     else if (u.t === 'stash') { stat('stash'); u.o.open = true; sNoise({ dur: .25, f0: 900, f1: 300, type: 'bandpass', q: 1.5, gain: .25 }); }
     else if (u.t === 'car') { const c = u.o; P.drive = c; c.col.off = true; gunRoot.visible = false; reloading = false; input.aim = false; $('tAim').classList.remove('on'); banner('Driving', isTouch ? 'Stick to steer · Pick up to get out' : 'W A S D to drive · E to get out', 2.4);
       if (ac && !engine) { try { const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(); o.type = 'sawtooth'; f.type = 'lowpass'; f.frequency.value = 420; g.gain.value = 0; o.connect(f); f.connect(g); g.connect(master); o.start(); engine = { o, g }; } catch (e) {} } }
@@ -3837,7 +3833,6 @@ function mkChar(si, wi) {
   try { mergeChar(g, !lite); } catch (e) {}
   if (lite) g.traverse(o => { if (o.isMesh) o.castShadow = false; });
   g.userData.sm = []; g.traverse(o => { if (o.isMesh && o.castShadow) g.userData.sm.push(o); }); g.userData.shOn = true;
-  if (SKINS[si].cel && !lite) { try { celOutline(g); } catch (e) {} }
   const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = .025; sh.renderOrder = 1; g.add(sh);     // soft contact shadow
   scene.add(g); return g;
 }
@@ -4090,7 +4085,7 @@ function getStock() {
     melees: take(paid(MELEE), 10).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 10).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 10).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 10).sort((x, y) => REVIVES[x].price - REVIVES[y].price) , auras: take(paid(AURAS), 10).sort((x, y) => AURAS[x].price - AURAS[y].price) };
   return stock;
 }
-const bundleParts = b => b.skins.map(i => ['skins', i, SKINS[i]]).concat([['wraps', b.wrap, WRAPS[b.wrap]], ['melees', b.melee, MELEE[b.melee]], ['intros', b.intro, INTROS[b.intro]]]).concat(b.fin >= 0 ? [['fins', b.fin, FINISHERS[b.fin]]] : [], b.rev >= 0 ? [['revs', b.rev, REVIVES[b.rev]]] : []);
+const bundleParts = b => b.skins.map(i => ['skins', i, SKINS[i]]).concat([['wraps', b.wrap, WRAPS[b.wrap]], ['melees', b.melee, MELEE[b.melee]], ['intros', b.intro, INTROS[b.intro]]]).concat(b.fin >= 0 ? [['fins', b.fin, FINISHERS[b.fin]]] : [], b.rev >= 0 ? [['revs', b.rev, REVIVES[b.rev]]] : [], bAura(b) > 0 ? [['auras', bAura(b), AURAS[bAura(b)]]] : []);
 const bundleFull = b => bundleParts(b).reduce((n, p) => n + p[2].price, 0);
 const bundleCost = b => Math.round(bundleParts(b).reduce((n, p) => n + (save[p[0]].includes(p[1]) ? 0 : p[2].price), 0) * .7 / 10) * 10;
 const cr = n => n.toLocaleString('en-US');
@@ -4115,12 +4110,12 @@ function renderThumb(kind, id) {
   const tallPic = kind === 'coin' || kind === 'skin' || kind === 'intro' || kind === 'fin' || kind === 'rev' || kind === 'aura', key = kind + id, w = tallPic ? 256 : 352, h = tallPic ? 320 : 198, g = new THREE.Group(), rtKey = tallPic ? 'skin' : 'wide';
   try {
     if (kind === 'skin') {
-      buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[id], WRAPS[0], false); if (SKINS[id].cel) celOutline(g);
+      buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[id], WRAPS[0], false);
       g.rotation.y = .5; thumbCam.position.set(0, 1.05, 4.5); vT.set(0, .96, 0);
     } else if (kind === 'aura') {
       const pr = String(id).split('_');
       buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[+pr[1]] || SKINS[0], WRAPS[save.wrap], false);
-      const a = mkAura(AURAS[+pr[0]]); auraPose(a, 2.2); g.add(a); g.rotation.y = .5; thumbCam.position.set(0, 1.15, 5.6); vT.set(0, 1.05, 0);
+      setAura(g, +pr[0]); if (g.userData.auraG) auraPose(g.userData.auraG, 2.2); g.rotation.y = .5; thumbCam.position.set(0, 1.15, 5.6); vT.set(0, 1.05, 0);
     } else if (kind === 'rev') {
       const pr = String(id).split('_'), R = REVIVES[+pr[0]];
       buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[+pr[1]] || SKINS[0], WRAPS[save.wrap], false);
@@ -4158,7 +4153,7 @@ function shopPreview() {
   if (sel.k === 'skin') prevSkin = sel.i;
   else if (sel.k === 'wrap') prevWrap = sel.i;
   else if (sel.k === 'melee') prevMelee = sel.i;
-  else if (sel.k === 'bundle') { const b = BUNDLES[sel.i]; prevSkin = b.skins[sel.c % b.skins.length]; prevWrap = b.wrap; prevMelee = b.melee; prevIntro = b.intro; }
+  else if (sel.k === 'bundle') { const b = BUNDLES[sel.i]; prevSkin = b.skins[sel.c % b.skins.length]; prevWrap = b.wrap; prevMelee = b.melee; prevIntro = b.intro; if (bAura(b) > 0) auraPrev = bAura(b); }
   buildHero();
   while (meleeShow.children.length) meleeShow.remove(meleeShow.children[0]);
   if (sel.k === 'melee') { const m = meleeModel(sel.i); m.position.y = -.25; meleeShow.add(m); }
@@ -4207,7 +4202,7 @@ function renderShop() {
     equipped = owned && save.skin === prevSkin && save.wrap === b.wrap && loadout.melee === b.melee && save.intro === b.intro; desc = parts.map(p => p[2].name).join(', ') + (b.skins.length > 1 ? '. Tap the bundle again to see the next character.' : '.'); }
   else if (sel.k === 'skin') { name = SKINS[sel.i].name; owned = save.skins.includes(sel.i); equipped = save.skin === sel.i; cost = SKINS[sel.i].price; desc = 'Character skin'; }
   else if (sel.k === 'intro') { name = INTROS[sel.i].name; owned = save.intros.includes(sel.i); equipped = save.intro === sel.i; cost = INTROS[sel.i].price; desc = 'Intro / outro: play it when you land, on the results screen, or both'; }
-  else if (sel.k === 'aura') { name = AURAS[sel.i].name; owned = save.auras.includes(sel.i); equipped = save.aura === sel.i; cost = AURAS[sel.i].price; desc = 'Aura: a glow around your character that everyone can see'; }
+  else if (sel.k === 'aura') { name = AURAS[sel.i].name; owned = save.auras.includes(sel.i); equipped = save.aura === sel.i; cost = AURAS[sel.i].price; desc = 'Aura: a glowing outline around your character that everyone can see'; }
   else if (sel.k === 'rev') { name = REVIVES[sel.i].name; owned = save.revs.includes(sel.i); equipped = save.rev === sel.i; cost = REVIVES[sel.i].price; desc = 'Revive animation: plays while you bring a teammate back'; }
   else if (sel.k === 'fin') { name = FINISHERS[sel.i].name; owned = save.fins.includes(sel.i); equipped = save.fin === sel.i; cost = FINISHERS[sel.i].price; desc = 'Finisher: use it on a knocked-down enemy player'; }
   else if (sel.k === 'melee') { name = MELEE[sel.i].name; owned = save.melees.includes(sel.i); equipped = loadout.melee === sel.i; cost = MELEE[sel.i].price; desc = 'Melee weapon: ' + MELEE[sel.i].note; }
@@ -4222,7 +4217,7 @@ $('btnBuy').addEventListener('click', () => {
   if (sel.k === 'bundle') {
     const b = BUNDLES[sel.i], cost = bundleCost(b);
     if (cost > 0) { if (save.credits < cost) return; save.credits -= cost; for (const p of bundleParts(b)) if (!save[p[0]].includes(p[1])) save[p[0]].push(p[1]); sfx.pickup(); }
-    save.skin = b.skins[sel.c % b.skins.length]; save.wrap = b.wrap; loadout.melee = b.melee; save.intro = b.intro; if (b.fin >= 0) save.fin = b.fin; if (b.rev >= 0) save.rev = b.rev; saveLoadout();
+    save.skin = b.skins[sel.c % b.skins.length]; save.wrap = b.wrap; loadout.melee = b.melee; save.intro = b.intro; if (b.fin >= 0) save.fin = b.fin; if (b.rev >= 0) save.rev = b.rev; if (bAura(b) > 0) save.aura = bAura(b); saveLoadout();
   } else if (sel.k === 'intro') {
     const it = INTROS[sel.i];
     if (!save.intros.includes(sel.i)) { if (save.credits < it.price) return; save.credits -= it.price; save.intros.push(sel.i); sfx.pickup(); }
@@ -4304,7 +4299,7 @@ function renderLoad() {
   const it = list[isOwned(ldCat, sel.i) ? sel.i : eq], rr = rarity(it), btn = $('ldEquip');
   $('ldRar').textContent = RAR[rr][0]; $('ldRar').style.color = RAR[rr][1];
   $('ldName').textContent = it.name;
-  $('ldDesc').textContent = ldCat === 'skin' ? 'Character skin' : ldCat === 'wrap' ? (it.react ? 'Reactive wrap: ' + it.note : 'Weapon wrap for every firearm') : ldCat === 'melee' ? it.note : ldCat === 'intro' ? 'Plays when you land at the start of a match' : ldCat === 'fin' ? 'Your finisher on knocked-down enemy players' : ldCat === 'rev' ? 'Plays for the ten seconds you spend reviving a teammate' : ldCat === 'aura' ? (sel.i ? 'A glow around your character that everyone can see' : 'No aura') : 'Plays on the results screen when a match ends';
+  $('ldDesc').textContent = ldCat === 'skin' ? 'Character skin' : ldCat === 'wrap' ? (it.react ? 'Reactive wrap: ' + it.note : 'Weapon wrap for every firearm') : ldCat === 'melee' ? it.note : ldCat === 'intro' ? 'Plays when you land at the start of a match' : ldCat === 'fin' ? 'Your finisher on knocked-down enemy players' : ldCat === 'rev' ? 'Plays for the ten seconds you spend reviving a teammate' : ldCat === 'aura' ? (sel.i ? 'A glowing outline around your character that everyone can see' : 'No aura') : 'Plays on the results screen when a match ends';
   btn.disabled = eq === sel.i; btn.textContent = eq === sel.i ? 'Equipped' : 'Equip';
   $('ldEq').textContent = order.length + ' owned · Equipped: ' + equippedLine();
 }
@@ -4418,7 +4413,7 @@ $('codeForm').addEventListener('submit', e => {
     if (r.coins > 0) { save.credits += Math.floor(r.coins); got.push(cr(Math.floor(r.coins)) + ' coins'); }
     if (r.xp > 0) { save.bp.xp += Math.floor(r.xp); got.push(Math.floor(r.xp) + ' battle pass XP'); }
     if (r.skin) { const i = SKINS.findIndex(q => q.name.toLowerCase() === String(r.skin).toLowerCase()); if (i >= 0) { give('skins', SKINS, i); got.push('the ' + SKINS[i].name + ' character'); } }
-    if (r.bundle) { const b = BUNDLES.find(q => q.name.toLowerCase() === String(r.bundle).toLowerCase()); if (b) { for (const i of b.skins) give('skins', SKINS, i); give('wraps', WRAPS, b.wrap); give('melees', MELEE, b.melee); give('intros', INTROS, b.intro); if (b.fin >= 0) give('fins', FINISHERS, b.fin); if (b.rev >= 0) give('revs', REVIVES, b.rev); got.push('the ' + b.name + ' bundle'); } }
+    if (r.bundle) { const b = BUNDLES.find(q => q.name.toLowerCase() === String(r.bundle).toLowerCase()); if (b) { for (const i of b.skins) give('skins', SKINS, i); give('wraps', WRAPS, b.wrap); give('melees', MELEE, b.melee); give('intros', INTROS, b.intro); if (b.fin >= 0) give('fins', FINISHERS, b.fin); if (b.rev >= 0) give('revs', REVIVES, b.rev); if (bAura(b) > 0) give('auras', AURAS, bAura(b)); got.push('the ' + b.name + ' bundle'); } }
     save.codes.push(code); persist(); sfx.pickup(); $('codeIn').value = ''; $('lbCred').textContent = cr(save.credits); bpBadge(); renderLoadout();
     if (r.aura) { const i = AURAS.findIndex(q => q.name.toLowerCase() === String(r.aura).toLowerCase()); if (i > 0) { give('auras', AURAS, i); got.push('the ' + AURAS[i].name + ' aura'); } }
     out.textContent = got.length ? 'Code accepted: you got ' + got.join(' and ') + '.' : 'Code accepted.';
@@ -5338,6 +5333,10 @@ function thirdPerson(dt) {
     const pt = clamp(P.pitch + kick, -1.1, 1.1);
     pose = mixP(pose, gunUp && !v.melT ? { ux: (v.crouch ? .22 : .05) - pt * .92, hx: .06 + pt * .12, sRx: -1.22 - tp.kick * .06, eR: -.22 - tp.kick * .2, sLx: -1.28, sLz: -.3, eL: -.42 } : { ux: (pose.ux || 0) - pt * .4, hx: (pose.hx || 0) - pt * .3 });
     if (gunUp && reloading && !v.melT) pose = mixP(pose, { sLx: -.7, eL: -1.5, sRx: -.9, eR: -.9 });
+  }
+  if (P.doorT > 0) {                               // opening or closing a door: the free hand goes out, pushes, and comes back
+    P.doorT -= dt; const k = Math.sin(Math.PI * clamp(1 - P.doorT / .55, 0, 1)), q = 1 - k;
+    if (!P.down) pose = mixP(pose, { sLx: (pose.sLx || 0) * q - 1.6 * k, sLz: (pose.sLz || 0) * q + .12 * k, eL: (pose.eL || 0) * q - .1 * k, uy: (pose.uy || 0) - .3 * k, ux: (pose.ux || 0) + .1 * k });
   }
   hero.visible = true; hero.position.set(P.x, P.y, P.z); hero.rotation.set(0, P.yaw + Math.PI, 0); if (hero.userData.rig) applyPose(hero.userData.rig, pose);
   const pit = P.pitch + kick, cp = Math.cos(pit), fx = -Math.sin(P.yaw) * cp, fy = Math.sin(pit), fz = -Math.cos(P.yaw) * cp, rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), kq = Math.min(1, dt * 9);
