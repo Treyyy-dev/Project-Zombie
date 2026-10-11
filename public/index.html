@@ -2008,6 +2008,11 @@ const REVIVES = [
   SK('Robin', 900, 0x6a3a9e, 0x1c1c26, 'bare', { hs: 'long', fem: 1, t: 0xe2b48c, h: 0x0d0d12, f: 'shades', x: 'zip', b: 0x24182e, g: 's' });
   SK('Brook', 900, 0x14141a, 0x14141a, 'afrohat', { ld: 0x101014, t: 0xe4dcc6, h: 0x0c0c10, x: 'tie ribs buckle', a: 0xd8b024, b: 0x0c0c0c, g: 0xe4dcc6 });
   WR('Sakura Pink', 300, { col: 0xf7a8c4 }); ML('Soul Cane', 900, 5, 112, .44, 2.4, 2, .2, 'hip', '112 damage · very fast sword');
+  // ----- Going Merry Series: the rest of the fan-made pirate crew -----
+  SK('Franky', 900, 0xc8362a, 0x23356e, 'bare', { hs: 'pomp', t: 0xe0a878, h: 0x2a9ad8, f: 'shades steelnose', x: 'shorts stars pads', a: 0xd8b024, b: 0x1c1c1c, g: 0x9aa2a8, sz: 1.1 });
+  SK('Usopp', 900, 0x6a4a2a, 0x7a5a32, 'bandana', { hs: 'curly', ld: 0x9aa23a, t: 0xb07a4e, h: 0x0e0c0c, f: 'goggles longnose', x: 'kit backpack', a: 0xc8a23a, b: 0x3a2a1c, g: 's' });
+  SK('Nami', 900, 0x3a8ae2, 0x1c3a7c, 'bare', { hs: 'long', fem: 1, t: 0xf4cdb0, h: 0xf08a2a, x: 'stripes buckle', a: 0xf4f4f0, b: 0xb8742a, g: 's' });
+  WR('Sunny Orange', 300, { col: 0xf08a2a }); ML('Clima-Tact', 800, 15, 86, .34, 2.3, 2, .7, 'hip', '86 damage · very fast staff');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2015,6 +2020,7 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Going Merry Series', pin: 1, skins: ['Franky', 'Usopp', 'Nami'].map(sI), wrap: wI('Sunny Orange'), melee: mI('Clima-Tact'), intro: Math.max(0, aI('Windmill Arms')), fin: fI('Front Kick'), rev: rI('Thump') });
   BUNDLES.push({ name: 'Thousand Sunny Series', pin: 1, skins: ['Chopper', 'Robin', 'Brook'].map(sI), wrap: wI('Sakura Pink'), melee: mI('Soul Cane'), intro: Math.max(0, aI('Salsa')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Grand Line Series', pin: 1, skins: ['Luffy', 'Zoro', 'Sanji'].map(sI), wrap: wI('Straw Gold'), melee: mI('Wado Katana'), intro: Math.max(0, aI('Raise the Roof')), fin: fI('Haymaker'), rev: rI('Canteen') });
   BUNDLES.push({ name: 'Adventure Series', pin: 1, skins: ['Finn', 'Jake', 'Marceline'].map(sI), wrap: wI('Ooo Sky'), melee: mI("Hero's Sword"), intro: Math.max(0, aI('Victory Jump')), fin: fI('Flash Kick'), rev: rI('Pep Talk') });
@@ -2172,6 +2178,8 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (fhas('goggles')) hb(H, lens, .17, .05, .03, 0, .01, .1);
     if (fhas('mask')) hb(H, pale, .13, .075, .03, 0, -.065, .095);
     if (fhas('patch')) hb(H, black, .046, .036, .014, .036, .018, .106);
+    if (fhas('longnose')) hr(H, tone, .017, .013, [0, -.012, .1], [0, -.02, .24], 6);      // a very long nose
+    if (fhas('steelnose')) hb(H, steel, .03, .045, .035, 0, -.012, .11);
     if (fhas('scar')) { hb(H, mk(0x7a3a30, 4), .034, .008, .006, -.04, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.046, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.034, -.008, .106); }      // stitched scar under one eye
     if (fhas('paint')) { hb(H, mk(0x1c2a16), .16, .014, .012, 0, -.02, .1); hb(H, mk(0x1c2a16), .1, .014, .012, -.03, .05, .1); }
   };
@@ -2243,6 +2251,8 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (S.hs) {                                   // longer hair styles sit behind whatever is on the head
     if (S.hs === 'pony') { ball(H, hair, .046, 0, .04, -.125); hr(H, hair, .03, .012, [0, .03, -.14], [0, -.16, -.17], 6); }
     else if (S.hs === 'long') hb(H, hair, .2, .32, .05, 0, -.13, -.088);
+    else if (S.hs === 'pomp') { const q = ball(H, hair, .075, 0, .125, .055); q.scale.set(1, .9, 1.35); ball(H, hair, .06, 0, .1, -.02); }      // tall swept-up quiff
+    else if (S.hs === 'curly') { for (const [x, y, z] of [[-.09, .04, -.05], [.09, .04, -.05], [0, .06, -.1], [-.07, -.04, -.09], [.07, -.04, -.09], [0, -.06, -.1]]) ball(H, hair, .055, x, y, z); }
     else if (S.hs === 'bob') { hb(H, hair, .228, .17, .1, 0, -.03, -.06); hb(H, hair, .03, .15, .12, -.105, -.03, .0); hb(H, hair, .03, .15, .12, .105, -.03, .0); }
     else if (S.hs === 'bun') ball(H, hair, .052, 0, .11, -.075);
     else if (S.hs === 'braid') { hr(H, hair, .028, .02, [0, -.01, -.11], [.02, -.32, -.14], 6); ball(H, hair, .028, .02, -.33, -.14); }
