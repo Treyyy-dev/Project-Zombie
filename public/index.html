@@ -3257,13 +3257,18 @@ function openPoint() {                           // a start with nothing near it
 }
 const TEAMS = 13;
 function spawnTeams() {                          // thirteen teams on the field: yours plus twelve of bots, each dropped together
-  const n = cfg.team, names = BOT_NAMES.slice().sort(() => Math.random() - .5), spots = [[P.x, P.z]]; let ni = 0; teamsW.length = 0;
+  const n = cfg.team, spots = [[P.x, P.z]], real = Math.random, R0 = net.teamRng(); let ni = 0; teamsW.length = 0;
+  if (R0) Math.random = R0;                        // online, everyone on a team rolls the same bot team-mates (names, characters, gear), so the plane and the match show the same people
+  const names = BOT_NAMES.slice(); for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)), q = names[i]; names[i] = names[j]; names[j] = q; }
+  const looks = []; for (let m = 0; m < 4; m++) looks.push({ skin: rndSkin(), wrap: Math.floor(Math.random() * WRAPS.length), gun: pick(BGUNS), intro: Math.floor(Math.random() * INTROS.length), outro: Math.floor(Math.random() * INTROS.length), finI: Math.floor(Math.random() * FINISHERS.length), revI: Math.floor(Math.random() * REVIVES.length) });
+  Math.random = real;
   for (let t = 0; t < TEAMS; t++) {
     let c = spots[0];
     if (t > 0) { for (let k = 0; k < 40; k++) { c = freePoint(50); if (spots.every(q => Math.hypot(q[0] - c[0], q[1] - c[1]) > 44 - k)) break; } spots.push(c); }
     teamsW[t] = { x: c[0], z: c[1], t: 0, lead: null };
     for (let m = t === 0 ? (cfg.fill ? 1 + net.mateCount() : n) : 0; m < n; m++) {
       let x = c[0], z = c[1]; for (let k = 0; k < 14; k++) { x = c[0] + rand(-2.8, 2.8); z = c[1] + rand(-2.8, 2.8); if (!blocked(x, z, .6) && Math.hypot(x - c[0], z - c[1]) > 1) break; }
+      if (t === 0 && R0) { const L = looks[m % 4]; addBot(Object.assign({ x, z, yaw: rand(0, 6.28), team: 0, ai: 'bot', name: names[ni % names.length], slot: m }, L)); ni++; continue; }
       addBot({ skin: rndSkin(), wrap: Math.floor(Math.random() * WRAPS.length), x, z, yaw: rand(0, 6.28), team: t, ai: 'bot', name: names[ni % names.length] + (ni++ >= names.length ? String(1 + Math.floor(ni / names.length)) : ''), gun: pick(BGUNS), slot: m,
         intro: Math.floor(Math.random() * INTROS.length), outro: Math.floor(Math.random() * INTROS.length), finI: Math.floor(Math.random() * FINISHERS.length), revI: Math.floor(Math.random() * REVIVES.length) });
     }
@@ -4429,6 +4434,7 @@ const net = (() => {
   };
   N.mateCount = () => N.match ? N.match.ids.length - 1 : 0;
   N.seedStart = () => { N.rng = N.match && inTown ? mulb(N.match.seed ^ hashS(N.match.tk)) : null; };
+  N.teamRng = () => N.match ? mulb((N.match.seed ^ hashS(N.match.tk)) + 991) : null;
   N.exitR = () => N.match ? mulb(N.match.seed + 7)() : Math.random();
   N.slotOff = () => { const i = N.match ? Math.max(0, N.match.ids.indexOf(N.id)) : 0; return [[0, 0], [1.7, 0], [-1.7, 0], [0, 1.7]][i] || [0, 0]; };
   N.spawnMates = () => {                           // the other players on my team, standing in for bot team-mates
