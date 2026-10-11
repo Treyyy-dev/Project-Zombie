@@ -2536,7 +2536,7 @@ const P = { drive: null, x: 0, z: 0, yaw: 0, pitch: 0, hp: 100, max: 100, eye: 1
 let cur = 0, nextShot = 0, reloading = false, reloadEnd = 0, kick = 0, shake = 0, roll = 0, flashT = 0, swapT = 0, crossGap = 9, pumpT = 0;
 let aimK = 0, swayX = 0, swayY = 0, lastYaw = 0, lastPitch = 0, sprintK = 0, baseFov = 72, heartT = 0, stepN = 0;
 let wave = 0, toSpawn = 0, spawnT = 0, interT = 0, score = 0, kills = 0;
-let zombies = [], zparts = [], pickups = [];
+let zombies = [], zparts = [], pickups = [], entSeq = 0;
 const input = { keys: new Set(), mouse: false, fire: false, aim: false, jx: 0, jy: 0 };
 let best = { wave: 0, score: 0 }, playerName = 'NIGHT WATCH', menuKind = 'title';
 const loadout = { char: -1, melee: 0 };    // classes are gone; char stays -1 so no perk applies
@@ -2703,18 +2703,18 @@ const zGeo = {
   thigh: new THREE.CylinderGeometry(.088, .07, .45, low ? 7 : 12), shin: new THREE.CylinderGeometry(.065, .05, .45, low ? 6 : 10), foot: new THREE.BoxGeometry(.1, .08, .25),
 };
 const HIP = .94;
-function spawnZombie(typeName) {
-  const tp = TYPES[typeName], ext = inTown;
-  let x = 0, z = 0, ok = false;
+function spawnZombie(typeName, at) {
+  const tp = TYPES[typeName], ext = inTown, A = at ? P : net.anchor();      // in a shared match zombies come up around every real player, not only the host
+  let x = 0, z = 0, ok = false; if (at) { x = at[0]; z = at[1]; ok = true; }
   for (let i = 0; i < 40 && !ok; i++) {
-    if (ext) { const a = rand(0, 6.283), r = rand(i < 25 ? 17 : 10, 34); x = P.x + Math.cos(a) * r; z = P.z + Math.sin(a) * r; ok = x > B.x0 && x < B.x1 && z > B.z0 && z < B.z1 && !blocked(x, z, .7); continue; }
+    if (ext) { const a = rand(0, 6.283), r = rand(i < 25 ? 17 : 10, 34); x = A.x + Math.cos(a) * r; z = A.z + Math.sin(a) * r; ok = x > B.x0 && x < B.x1 && z > B.z0 && z < B.z1 && !blocked(x, z, .7); continue; }
     x = rand(-27, 27); z = rand(-27, 27);
     const d = Math.hypot(x - P.x, z - P.z);
     ok = d > (i < 25 ? 13 : 8) && d < 34 && !blocked(x, z, .7);
   }
   const g = new THREE.Group(); g.rotation.order = 'YXZ';
   const sc = tp.scale * rand(.95, 1.05);
-  const Z = { g, tp, sc, type: typeName, x, z, hp: tp.hp * (1 + (wave - 1) * .06), speed: tp.speed * rand(.88, 1.12) * (1 + Math.min(wave, 14) * .02),
+  const Z = { id: ++entSeq, g, tp, sc, type: typeName, x, z, hp: tp.hp * (1 + (wave - 1) * .06), speed: tp.speed * rand(.88, 1.12) * (1 + Math.min(wave, 14) * .02),
     state: 'rise', t: 0, atk: .5, atkK: 0, phase: Math.random() * 6, side: Math.random() < .5 ? 1 : -1, blockT: 0, stag: 0, flinch: 0, parts: [], groanT: rand(1, 7),
     twist: 0, snap: 0, spin: 0, legDmg: 0, crawl: false, crawlK: 0, headshot: false, style: typeName === 'runner' ? 2 : Math.random() < .45 ? 1 : 0, limp: Math.random() < .4 ? rand(.35, .7) : 1, headTilt: rand(-.35, .35), fall: -1, pooled: false, mirror: Math.random() < .5 ? 1 : -1 };
   const skin = skinMats[typeName], shirt = pick(shirtMats), pants = pick(pantsMats), bare = Math.random() < .25;
@@ -2746,22 +2746,25 @@ function spawnZombie(typeName) {
   [Z.shL, Z.elL] = arm(-1); [Z.shR, Z.elR] = arm(1); [Z.hpL, Z.knL] = leg(-1); [Z.hpR, Z.knR] = leg(1);
   g.scale.setScalar(sc); g.position.set(x, -1.95 * sc, z);
   scene.add(g); zombies.push(Z); zparts = zparts.concat(Z.parts);
-  burst(x, .1, z, 9, 2, 1.6);
+  if (!at) burst(x, .1, z, 9, 2, 1.6);
+  return Z;
 }
 function removeZombie(Z) { scene.remove(Z.g); zombies = zombies.filter(q => q !== Z); }
 function killZombie(Z, head, dx, dz) {
+  net.zk(Z, head, dx, dz);
   Z.state = 'dead'; Z.t = 0; zparts = zparts.filter(m => m.userData.z !== Z);
   Z.fall = head || Math.random() < .65 ? -1 : 1;
   if (Z.crawl) { Z.fall = 1; Z.t = .86; }
   if (!byBot) { kills++; score += Z.tp.pts + (head ? 50 : 0); stat('zk'); if (head) stat('hs'); if (meleeT > 0 || W[cur].melee) stat('melee'); }
   if (head) { Z.head.visible = false; const hy = 1.72 * Z.sc; gib(Z.x, hy, Z.z, dx, dz); burst(Z.x, hy, Z.z, 14, 0, 2.2, dx * 2, dz * 2); bloodPool(Z.x + dx * rand(1, 2), Z.z + dz * rand(1, 2), rand(.9, 1.4), false); }
-  if (Math.random() < (Z.type === 'brute' ? 1 : .45)) dropPickup(Z.x, Z.z);
-  if (inTown && Math.random() < (Z.type === 'brute' ? .8 : .22) && pickups.length < 110) lootPickup(Z.x + rand(-.5, .5), Z.z + rand(-.5, .5), 'cash');
+  if (!net.guest() && Math.random() < (Z.type === 'brute' ? 1 : .45)) dropPickup(Z.x, Z.z);
+  if (!net.guest() && inTown && Math.random() < (Z.type === 'brute' ? .8 : .22) && pickups.length < 110) lootPickup(Z.x + rand(-.5, .5), Z.z + rand(-.5, .5), 'cash');
   const dead = zombies.filter(q => q.state === 'dead').sort((a, b) => b.t - a.t);
   if (dead.length > (low ? 6 : 12)) dead[0].t = Math.max(dead[0].t, 9);
 }
 function damageZombie(Z, dmg, ud, pt, dx, dz) {
   if (Z.state === 'dead') return;
+  if (Z.rm) { if (!byBot) { burst(pt.x, pt.y, pt.z, ud.head ? 7 : 4, 0, 1.3, dx * 2.5, dz * 2.5); Z.flinch = Z.type === 'brute' ? .25 : 1; Z.stag = Z.type === 'brute' ? .06 : .24; net.dz(Z, dmg, ud, pt, dx, dz); } return; }      // the host's game owns this zombie
   Z.hp -= dmg * (ud.head ? 3 : ud.limb ? .7 : 1);
   Z.stag = Z.type === 'brute' ? .06 : .24; Z.flinch = Z.type === 'brute' ? .25 : 1;
   const ry = Z.g.rotation.y, lx = (pt.x - Z.x) * Math.cos(ry) - (pt.z - Z.z) * Math.sin(ry);
@@ -3141,7 +3144,7 @@ function addBot(o) {
   const b = Object.assign({ g: null, rig: null, x: 0, z: 0, y: 0, yaw: 0, hp: 100, max: 100, team: 1, down: false, bleed: 0, dead: false, ai: 'dummy', t: Math.random() * 9, flinch: 0, respawn: 0, fin: null, name: 'Bot',
     scan: Math.random() * .5, tgt: null, tgtZ: false, friend: null, finT: null, burst: 0, fireT: 0, ammo: 30, rel: 0, react: 0, strafe: 1, strafeT: 0, slide: 0, ph: 0, spd: 0, stuckT: 0, lx: 0, lz: 0, detT: 0, detA: 0, wx: 0, wz: 0, wt: 0, rev: 0, revAt: -9, aim: 0, kneel: 0, acc: 0, kick: 0, nstuck: 0, gun: BGUNS[0], slot: 0, intro: 0, finI: 0, revI: 0, car: null, carCd: 0, meds: 1, healT: 0, heal: 0, jump: 0, vault: null, melCd: 0, melT: 0, crouch: 0, hold: false, sc: 0, loot: null, lootT: 0 }, o);
   if (b.ai === 'bot') b.meds = Math.random() < .5 ? 2 : 1;
-  b.hx = b.x; b.hz = b.z; b.hyaw = b.yaw; b.lx = b.x; b.lz = b.z; b.ammo = b.gun.mag; bots.push(b);
+  b.hx = b.x; b.hz = b.z; b.hyaw = b.yaw; b.lx = b.x; b.lz = b.z; b.ammo = b.gun.mag; if (!b.id) b.id = ++entSeq; bots.push(b);
   if (b.ai === 'dummy') ensureModel(b);
   return b;
 }
@@ -3170,14 +3173,15 @@ function rayBot(o, d, maxD) {                    // nearest enemy body a shot pa
 }
 function botHurt(b, dmg, dx, dz, y, src) {       // src: P, another bot, or null for a zombie
   if (b.dead || b.fin || (src === P && b.team === 0)) return;
-  if (b.net) { if (src === P) { if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0); b.flinch = 1; net.hit(b, dmg); } return; }      // another real player: their own game decides what the hit does
+  if (b.net) { if (src === P) { if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0); b.flinch = 1; net.hit(b, dmg); } else if (net.host()) net.hitFor(b, dmg, src); return; }      // another real player: their own game decides what the hit does
+  if (b.rm) { if (src === P) { if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0); b.flinch = 1; net.dbot(b, dmg, y, dx, dz); } return; }      // a bot the host's game owns
   if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0);
   b.flinch = 1;
   if (b.down) { b.bleed -= dmg * .12; b.lastSrc = src; if (b.bleed <= 0) botDie(b, src === P); return; }
   b.hp -= dmg; if (src) b.hitBy = src; b.lastSrc = src;
   if (b.hp <= 0) {
     if (b.car) leaveCar(b);
-    if (b.ai === 'bot' || src === P) feed(whoName(src) + ' knocked ' + b.name.toUpperCase(), src === P ? 'me' : b.team === 0 ? 'bad' : '');
+    if (b.ai === 'bot' || src === P) { const tx = whoName(src) + ' knocked ' + b.name.toUpperCase(); feed(tx, src === P ? 'me' : b.team === 0 ? 'bad' : ''); net.fd(tx); if (src && src.net) net.credit(src, 1, b.name); }
     b.down = true; b.bleed = b.ai === 'dummy' ? 12 : 90; b.hp = 0; b.rev = 0; b.slide = 0; b.y = 0; b.healT = 0; b.heal = 0; b.vault = null; b.jump = 0; b.melT = 0;
     if (Math.hypot(b.x - P.x, b.z - P.z) < 40) sTone({ f0: 140, f1: 50, dur: .35, gain: .4 });
     if (src === P) { score += 100; if (b.ai === 'bot') stat('knock'); banner('Knocked ' + b.name, 'Get close to finish them', 1.6); }
@@ -3185,17 +3189,18 @@ function botHurt(b, dmg, dx, dz, y, src) {       // src: P, another bot, or null
   }
 }
 function botDie(b, byPlayer, how) {
-  if (b.ai === 'bot' || byPlayer) feed(how || whoName(byPlayer ? P : b.lastSrc) + ' killed ' + b.name.toUpperCase(), byPlayer ? 'me' : b.team === 0 ? 'bad' : '');
+  if (b.rm && byPlayer) net.bk(b);
+  if (b.ai === 'bot' || byPlayer) { const tx = how || whoName(byPlayer ? P : b.lastSrc) + ' killed ' + b.name.toUpperCase(); feed(tx, byPlayer ? 'me' : b.team === 0 ? 'bad' : ''); if (!b.net && !b.rm) net.fd(tx); if (!byPlayer && !b.net && b.lastSrc && b.lastSrc.net) net.credit(b.lastSrc, 2, b.name); }
   b.dead = true; b.down = false; b.respawn = b.ai === 'dummy' ? 3 : 25; bloodPool(b.x, b.z, 1.1, true);
   if (byPlayer && b.team !== 0) { kills++; score += 250; }
   if (b.net) b.respawn = 1e9;
-  if (b.ai === 'bot' && !b.net && pickups.length < 90) {     // they drop what they were carrying
+  if (b.ai === 'bot' && !b.net && !b.rm && pickups.length < 90) {     // they drop what they were carrying
     if (b.gun.kind !== 'pistol') { const p = lootPickup(b.x + rand(-.5, .5), b.z + rand(-.5, .5), b.gun.kind); if (p) { p.mag = b.gun.mag; p.res = b.gun.mag * 2; } }
     lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'cash'); lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'ammo'); if (Math.random() < .5) lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'med');
   }
   if (b.team === 0 && b.ai === 'bot') banner(b.name + ' is dead', '', 1.6);
 }
-function botUp(b, home) { if (b.net && !home) net.revDone(b); b.dead = false; b.down = false; b.hp = home ? b.max : 30; b.bleed = 0; b.rev = 0; if (home) { b.x = b.hx; b.z = b.hz; b.yaw = b.hyaw; } else if (b.team === 0) banner(b.name + ' is back up', '', 1.4); }
+function botUp(b, home) { if (b.net && !home) net.revDone(b); if (b.rm && !home) net.bup(b); b.dead = false; b.down = false; b.hp = home ? b.max : 30; b.bleed = 0; b.rev = 0; if (home) { b.x = b.hx; b.z = b.hz; b.yaw = b.hyaw; } else if (b.team === 0) banner(b.name + ' is back up', '', 1.4); }
 const hostile = (b, o) => o === P ? b.team !== 0 : o.team !== b.team;
 const liveState = () => state === 'play' || state === 'inv';
 const standing = o => o === P ? !P.down && !P.fin && liveState() : !o.dead && !o.down && !o.fin;
@@ -3245,7 +3250,7 @@ function spawnTeams() {                          // thirteen teams on the field:
 function botScan(b, dP) {
   let best = null, bd = 30, fin = null, fd = 14, friend = null, frd = 45;
   const consider = o => {
-    if (o.net && hostile(b, o)) return;            // bots leave real enemy players to real players
+    if (o.net && hostile(b, o) && !net.host()) return;            // only the host's bots fight real enemy players
     const d = Math.hypot(o.x - b.x, o.z - b.z);
     if (hostile(b, o)) { if (standing(o)) { if (d < bd && los(b.x, b.z, o.x, o.z)) { bd = d; best = o; } } else if (isDown(o) && d < fd && los(b.x, b.z, o.x, o.z)) { fd = d; fin = o; } }
     else if (isDown(o) && d < (o === P ? 999 : frd)) { frd = d; friend = o; }
@@ -3262,7 +3267,7 @@ function botScan(b, dP) {
 function botShoot(b, tg, d, ux, uz) {
   const z = b.tgtZ, mov = tg === P ? P.moving * (P.sprinting ? 1.5 : 1) : z ? 0 : tg.spd > 4 ? 1 : .3;
   let p = clamp(.8 - d * .014 - mov * .15, .1, .8); if (tg === P) p *= .65; if (b.crouch) p *= 1.2; if (tg.crouch) p *= .75; if (b.gun.kind === 'shotgun') p = d < 9 ? .75 : .2;
-  const hit = Math.random() < p, dP = Math.hypot(b.x - P.x, b.z - P.z); b.kick = 1;
+  const hit = Math.random() < p, dP = Math.hypot(b.x - P.x, b.z - P.z); b.kick = 1; b.fc = (b.fc || 0) + 1;
   if (dP < 70) {
     tracer(b.x + ux * .5, b.y + 1.35, b.z + uz * .5, tg.x + (hit ? 0 : rand(-1, 1)), (tg.y || 0) + (hit ? 1.1 : rand(.4, 2.2)), tg.z + (hit ? 0 : rand(-1, 1)));
     if (WT - lastBotSnd > .07) { lastBotSnd = WT; const v = 1 - dP / 70; sNoise({ dur: .1, f0: 1500, f1: 300, gain: .55 * v * v, pan: clamp(-Math.sin(Math.atan2(P.x - b.x, P.z - b.z) - P.yaw), -1, 1) }); }
@@ -3432,13 +3437,14 @@ function updateBots(dt) {
     if (b.g) b.g.visible = (near && !b.car) || !!(b.fin && b.fin.cam);
     if (b.fin) continue;
     let pose = null;
-    if (b.net) net.state(b);
+    if (b.net) net.state(b); else if (b.rm) net.rmState(b, dt);
     if (b.dead) { b.respawn -= dt; if (b.respawn <= 0) { if (b.ai === 'dummy') botUp(b, true); else { freeModel(b); bots.splice(i, 1); continue; } } pose = DEADP; }
     else if (b.down) {
       if (b.rev > 0 && T - b.revAt > .7) b.rev = 0;
       if (!(b.rev > 0)) b.bleed -= dt;
       if (b.bleed <= 0) { if (b.ai === 'dummy') botUp(b, true); else botDie(b, false, b.name.toUpperCase() + ' bled out'); }
       pose = downPose(b.ai === 'dummy' ? 0 : b.t);
+    } else if (b.rm) { if (near) pose = botPose(b);
     } else if (b.net) { net.drive(b, dt); if (near) pose = botPose(b);
     } else if (b.ai === 'bot') {
       if (dP > 95 && b.team !== 0) { b.acc += dt; if (b.acc >= .2) { const d2 = b.acc; b.acc = 0; botAI(b, d2, dP); } } else botAI(b, dt, dP);
@@ -3454,7 +3460,7 @@ function updateBots(dt) {
   }
 }
 function startFin(att, vic, idx) {              // five-second finisher: both are locked together and cannot be hurt
-  if (att === P && vic.net) net.fin(vic, idx);
+  if (att === P && vic.net) net.fin(vic, idx); else if (att !== P && vic.net && net.host()) net.fin(vic, idx, att);
   const F = FINISHERS[idx] || FINISHERS[0], dx = vic.x - att.x, dz = vic.z - att.z, d = Math.hypot(dx, dz) || 1, nx = dx / d, nz = dz / d, ang = Math.atan2(nx, nz);
   att.x = vic.x - nx * F.d; att.z = vic.z - nz * F.d; if (att === P) resolve(P, .3);
   const f = { att, vic, F, t: 0, hi: 0, ang, nx, nz, cam: att === P || vic === P }; fins.push(f); att.fin = vic.fin = f;
@@ -4361,17 +4367,18 @@ const net = (() => {
     N.match = { k: clean(g.k, 24) || 'k' + rid(), seed: num(g.seed, 0, 2e9, 1) | 0, ids, t0: num(g.t0, 0, 9e15, 0), tk: clean(g.tk, 40) || ids[0] }; lastSt = 0; started = false;
     savedCfg = { mode: cfg.mode, team: cfg.team, fill: cfg.fill };
     cfg.mode = g.m === 'training' ? 'training' : 'extraction'; cfg.team = Math.max(ids.length, num(g.tm, 1, 4, ids.length) | 0); cfg.fill = g.f ? 1 : 0;
-    N.mp.clear(); mpSeen.clear(); const mk = N.match.k;
+    N.mp.clear(); mpSeen.clear(); role = 'solo'; roster.clear(); deadIds.clear(); pkKnown.clear(); pkTomb.clear(); const mk = N.match.k;
     if (N.room && N.room.join) N.room.join('m-' + mk.toLowerCase().replace(/[^a-z0-9]/g, '')).then(r => {
       if (!N.match || N.match.k !== mk) { r.leave().catch(() => {}); return; }
       N.mroom = r; r.onPeers(ch => { N.mp.clear(); for (const p of ch.peers) { if (p.isMe || !p.presence) continue; const id = clean(p.presence.id, 40); if (id && id !== N.id) { N.mp.set(id, p.presence); if (!mpSeen.has(id)) { mpSeen.add(id); if (p.presence.rd) seenRd[id] = p.presence.rd.k; } } } }, () => {});
-      if (N.ev && r.on) { r.on('hit', onHit); r.on('ko', onKo); r.on('fin', onFin); }
+      if (N.ev && r.on) { r.on('hit', onHit); r.on('ko', onKo); r.on('fin', onFin); for (const k in WH) r.on(k, m => { try { WH[k](m.data || {}, m.by); } catch (e) {} }); }
     }).catch(() => {});
     play(true, true);
     if (N.match.t0 && state === 'intro') cutT = clamp(LOADT - (N.match.t0 - now()) / 1000, 0, LOADT - 1);      // everyone in the match finishes loading at the same moment
     N.pub();
   }
   N.leaveMatch = () => {
+    role = 'solo';
     if (N.mroom) { try { N.mroom.leave().catch(() => {}); } catch (e) {} } N.mroom = null; N.match = null; N.mp.clear(); N.reviving = null; revd = null; N.rng = null;
     if (savedCfg) { cfg.mode = savedCfg.mode; cfg.team = savedCfg.team; cfg.fill = savedCfg.fill; savedCfg = null; renderModes(); }
   };
@@ -4404,16 +4411,119 @@ const net = (() => {
   N.shot = () => { fireN++; };
   // ----- player versus player: what I do to another real player is sent to them, and their own game applies it -----
   N.hit = (b, dmg) => { if (N.ev && N.mroom) N.mroom.emit('hit', { to: b.net, dmg: Math.round(dmg) }); };
-  N.fin = (b, idx) => { N.finAt = T; if (N.ev && N.mroom) N.mroom.emit('fin', { to: b.net, i: idx }); };
+  N.fin = (b, idx, att) => { if (!att) N.finAt = T; if (N.ev && N.mroom) N.mroom.emit('fin', { to: b.net, i: idx, bid: att ? att.id : 0 }); };
   const botOf = id => bots.find(b => b.net === id) || null;
-  function onHit(m) { const d = m.data || {}; if (d.to !== N.id || state !== 'play' || P.dead || P.fin || !N.match || N.match.ids.includes(m.by)) return; const src = botOf(m.by), dmg = num(d.dmg, 0, 400, 0);
+  function onHit(m) { const d = m.data || {}, worldHit = !!(d.z || d.bid); if (d.to !== N.id || state !== 'play' || P.dead || P.fin || !N.match || (worldHit ? m.by !== hostId() : N.match.ids.includes(m.by))) return;
+    const src = d.z ? { x: P.x, z: P.z + 1, tp: 1 } : d.bid ? bots.find(b => b.id === d.bid && b.rm) || { x: P.x, z: P.z + 1, name: 'A bot' } : botOf(m.by), dmg = num(d.dmg, 0, 400, 0);
     if (P.down) { P.bleed -= dmg * .12; if (src) P.lastHit = src; } else hurt(dmg, src || { x: P.x, z: P.z + 1, name: 'A player' }); }
-  function onFin(m) { const d = m.data || {}; if (d.to !== N.id || state !== 'play' || !P.down || P.dead || P.fin) return; const a = botOf(m.by); if (a && !a.fin && !a.dead) { ensureModel(a); startFin(a, P, num(d.i, 0, FINISHERS.length - 1, 0) | 0); } }
+  function onFin(m) { const d = m.data || {}; if (d.to !== N.id || state !== 'play' || !P.down || P.dead || P.fin) return; const a = d.bid ? (m.by === hostId() ? bots.find(b => b.id === d.bid && b.rm) : null) : botOf(m.by); if (a && !a.fin && !a.dead) { ensureModel(a); startFin(a, P, num(d.i, 0, FINISHERS.length - 1, 0) | 0); } }
   function onKo(m) { const d = m.data || {}, name = clean(d.n, 16).toUpperCase() || 'A PLAYER', mine = d.by === N.id, mate = !!N.match && N.match.ids.includes(m.by), fin = mine && d.s === 2 && T - N.finAt < 9;
     if (!fin) feed((clean(d.byN, 20) || 'A ZOMBIE') + (d.s === 2 ? ' killed ' : ' knocked ') + name, mine ? 'me' : mate ? 'bad' : '');
     if (mine && !mate) { if (d.s === 1) { hitMark(2); score += 100; stat('knock'); banner('Knocked ' + clean(d.n, 16), 'Get close to finish them', 1.6); } else if (!fin) { hitMark(2); kills++; score += 250; } } }
   N.voiceGroup = () => { if (N.match && N.match.ids.length > 1) return { key: 'm' + N.match.k, ids: N.match.ids.slice() }; const ids = partyIds(); return ids.length > 1 && ids.every(id => id === N.id || N.peers.has(id)) ? { key: 'p' + ids[0], ids } : null; };
   N.talking = id => { if (id === N.id) return !!voice.talk; const m = N.mp.get(id); if (m) return !!m.tk; const p = N.peers.get(id); return !!(p && p.tk && (N.match ? N.match.ids.includes(id) : partyIds().includes(id))); };
+  // ----- shared world: the host's game runs every zombie, bot and piece of loot; everyone else mirrors it and reports what they do to it -----
+  let role = 'solo', wT = 0, rosT = 0, pkT = 0, pklT = 0, staleT = 0, pid = 0, pkPrev = new Set(), zBy = null;
+  const roster = new Map(), deadIds = new Set(), pkKnown = new Set(), pkTomb = new Set(), ZT = ['walker', 'runner', 'brute'];
+  const hostId = () => { let h = N.id; for (const id of N.mp.keys()) if (id < h) h = id; return h; };
+  const canon = tk => 100 + hashS(tk) % 800, tOut = t => t === 0 ? canon(N.match.tk) : t, tIn = c => c === canon(N.match.tk) ? 0 : c;
+  const emit = (k, d) => { if (N.mroom) try { N.mroom.emit(k, d); } catch (e) {} };
+  N.host = () => role === 'host'; N.guest = () => role === 'guest';
+  N.anchor = () => { if (role !== 'host') return P; const hs = bots.filter(b => b.net && !b.dead); if (!P.dead) hs.push(P); return hs.length ? hs[Math.floor(Math.random() * hs.length)] : P; };
+  N.zMul = () => role === 'host' ? Math.min(2.5, 1 + .5 * N.mp.size) : 1;
+  N.hitFor = (b, dmg, src) => emit('hit', { to: b.net, dmg: Math.round(dmg), z: src ? 0 : 1, bid: src && src.id ? src.id : 0 });
+  N.dbot = (b, dmg, y, dx, dz) => emit('db', { id: b.id, dmg: Math.round(dmg), y: y === undefined ? null : +y.toFixed(2), dx: +(dx || 0).toFixed(2), dz: +(dz || 0).toFixed(2) });
+  N.bk = b => { deadIds.add(b.id); emit('bk', { id: b.id }); };
+  N.bup = b => { b.grace = T + 2.5; emit('bu', { id: b.id }); };
+  N.dz = (Z, dmg, ud, pt, dx, dz) => emit('dz', { id: Z.id, dmg: Math.round(dmg), h: ud.head ? 1 : 0, l: ud.limb ? 1 : 0, g: ud.leg ? 1 : 0, p: [+pt.x.toFixed(1), +pt.y.toFixed(1), +pt.z.toFixed(1)], dx: +dx.toFixed(2), dz: +dz.toFixed(2) });
+  N.zk = (Z, head, dx, dz) => { if (role === 'host') emit('zk', { id: Z.id, h: head ? 1 : 0, dx: +(dx || 0).toFixed(2), dz: +(dz || 0).toFixed(2), by: zBy || (byBot ? null : N.id) }); };
+  N.fd = text => { if (role === 'host') emit('fd', { x: clean(text, 60) }); };
+  N.credit = (src, kind, name) => { if (role === 'host') emit('cr', { to: src.net, s: kind, n: clean(name, 16) }); };
+  const pkRow = p => [p.id, p.kind, +p.m.position.x.toFixed(1), +p.m.position.z.toFixed(1), p.y || 0, p.v || 0, p.mag === undefined ? null : p.mag, p.res === undefined ? null : p.res];
+  function pkMake(r) { const kind = clean(r[1], 12); if (!(kind === 'med' || kind === 'ammo' || kind === 'cash' || kind in GUN_IDX)) return null; let p = lootPickup(num(r[2], -1e5, 1e5, 0), num(r[3], -1e5, 1e5, 0), kind); if (!p) p = pickups[pickups.length - 1]; if (!p) return null;
+    p.keep = true; const y = num(r[4], 0, 60, 0); if (y) { p.y = y; p.m.position.y += y; } if (r[5]) p.v = num(r[5], 0, 5000, 0); if (r[6] !== null && r[6] !== undefined) p.mag = num(r[6], 0, 999, 0); if (r[7] !== null && r[7] !== undefined) p.res = num(r[7], 0, 9999, 0); return p; }
+  const pkDrop = id => { const i = pickups.findIndex(p => p.id === id); if (i >= 0) { scene.remove(pickups[i].m); if (nearPick === pickups[i]) nearPick = null; pickups.splice(i, 1); } };
+  N.rmState = (b, dt) => {                         // a bot the host runs: follow its last report
+    const k = Math.min(1, dt * 9); if (b.tx !== undefined) { if (Math.hypot(b.tx - b.x, b.tz - b.z) > 12) { b.x = b.tx; b.z = b.tz; } else { b.x += (b.tx - b.x) * k; b.z += (b.tz - b.z) * k; } let dy = b.tyaw - b.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); b.yaw += dy * k; }
+    b.ph += b.spd * dt * 2.3; b.kick = Math.max(0, b.kick - dt * 8); if (b.down) b.bleed = 60; if (b.jump > 0) b.jump -= dt; if (b.melT > 0) b.melT -= dt;
+  };
+  const WH = {                                     // what arrives from the other games in the match
+    w(d, by) { if (role !== 'guest' || by !== hostId()) return; const t = performance.now();
+      for (const r of d.b || []) { const id = r[0]; if (deadIds.has(id)) continue; let b = bots.find(q => q.id === id && q.rm); const f = r[5] | 0;
+        if (!b) { const info = roster.get(id); if (!info || (f & 2)) continue;
+          b = addBot({ id, rm: true, skin: num(info[2], 0, SKINS.length - 1, 0) | 0, wrap: num(info[3], 0, WRAPS.length - 1, 0) | 0, x: num(r[1], -1e5, 1e5, P.x), z: num(r[2], -1e5, 1e5, P.z), yaw: num(r[3], -99, 99, 0), team: tIn(num(info[4], 0, 999, 1) | 0), ai: 'bot', name: clean(info[1], 16) || 'Bot', gun: BGUNS.find(g => g.kind === info[5]) || BGUNS[0], slot: num(info[6], 0, 3, 0) | 0, intro: num(info[7], 0, INTROS.length - 1, 0) | 0, outro: 1, finI: num(info[8], 0, FINISHERS.length - 1, 0) | 0, revI: num(info[9], 0, REVIVES.length - 1, 0) | 0 }); b.fcSeen = r[8]; }
+        b.seen = t; b.tx = num(r[1], -1e5, 1e5, b.x); b.tz = num(r[2], -1e5, 1e5, b.z); b.tyaw = num(r[3], -99, 99, 0); b.hp = num(r[4], 0, 300, 100); b.spd = num(r[6], 0, 12, 0); b.y = num(r[7], 0, 60, 0);
+        if (f & 2) { if (!b.dead) { b.dead = true; b.down = false; b.respawn = 20; bloodPool(b.x, b.z, 1.1, true); deadIds.add(id); if (P.revB === b) P.revB = null; } continue; }
+        if (!(T < (b.grace || 0))) { const dn = !!(f & 1); if (dn && !b.down) { b.rev = 0; if (b.team === 0) banner(b.name + ' is down', 'Get to them and revive', 2); } b.down = dn; }
+        b.aim = f & 4 ? 1 : 0; b.crouch = f & 8 ? 1 : 0; b.slide = f & 16 ? .1 : 0; b.heal = f & 32 ? 1 : 0; b.kneel = f & 64 ? 1 : 0; b.car = f & 128 ? b.car || {} : null; if (f & 256 && b.jump <= 0) b.jump = .5; if (f & 512 && b.melT <= 0) b.melT = .3;
+        if (r[8] !== b.fcSeen) { b.fcSeen = r[8]; if (!b.down) { b.kick = 1; const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw), dd = Math.hypot(b.x - P.x, b.z - P.z); if (dd < 70) { tracer(b.x + fx * .5, b.y + 1.35, b.z + fz * .5, b.x + fx * 30, b.y + 1.2, b.z + fz * 30); if (WT - lastBotSnd > .07) { lastBotSnd = WT; sNoise({ dur: .1, f0: 1500, f1: 300, gain: .5 * (1 - dd / 70) * (1 - dd / 70) }); } } } } }
+      for (const r of d.z || []) { const id = r[0]; let Z = zombies.find(q => q.id === id); const x = num(r[1], -1e5, 1e5, 0), z = num(r[2], -1e5, 1e5, 0);
+        if (!Z) { if (zombies.length > 40) continue; Z = spawnZombie(ZT[r[3]] || 'walker', [x, z]); Z.id = id; Z.rm = true; if (r[4]) { Z.state = 'walk'; Z.g.position.set(x, 0, z); Z.g.rotation.x = 0; } }
+        if (Z.state === 'dead') continue; Z.seen = t; Z.hx = x; Z.hz = z; if (r[5] && !Z.crawl) { Z.crawl = true; Z.speed *= .4; } } },
+    ros(d, by) { if (by !== hostId()) return; for (const r of d.b || []) if (Array.isArray(r)) roster.set(r[0], r); },
+    zk(d, by) { if (role !== 'guest' || by !== hostId()) return; const Z = zombies.find(q => q.id === d.id); if (!Z || Z.state === 'dead') return; const was = byBot; byBot = d.by !== N.id; try { killZombie(Z, !!d.h, num(d.dx, -1, 1, 0), num(d.dz, -1, 1, 0)); } finally { byBot = was; } if (d.by === N.id) hitMark(2); },
+    fd(d, by) { if (role === 'guest' && by === hostId()) feed(clean(d.x, 60), ''); },
+    cr(d, by) { if (d.to !== N.id || by !== hostId()) return; hitMark(2); if (d.s === 1) { score += 100; stat('knock'); banner('Knocked ' + clean(d.n, 16), 'Get close to finish them', 1.6); } else { kills++; score += 250; } },
+    'pk+'(d, by) { if (role !== 'guest' || by !== hostId()) return; for (const r of d.l || []) { const id = r[0]; if (pkTomb.has(id) || pickups.some(p => p.id === id)) continue; const p = pkMake(r); if (p) { p.id = id; pkKnown.add(id); } } },
+    'pk-'(d, by) { if (role !== 'guest' || by !== hostId()) return; for (const id of d.l || []) { pkKnown.delete(id); pkTomb.add(id); pkDrop(id); } },
+    pkl(d, by) { if (role !== 'guest' || by !== hostId()) return; const have = new Set(d.l || []), want = []; for (const p of pickups.slice()) if (p.id && !have.has(p.id)) { pkKnown.delete(p.id); pkDrop(p.id); } for (const id of have) if (!pkKnown.has(id) && !pkTomb.has(id)) want.push(id); if (want.length) emit('pkq', { l: want.slice(0, 80) }); },
+    // ----- the host's side -----
+    db(d, by) { if (role !== 'host') return; const b = bots.find(q => q.id === d.id && !q.net), src = botOf(by); if (!b || !src || src.team === b.team) return; botHurt(b, num(d.dmg, 0, 400, 0), num(d.dx, -1, 1, 0), num(d.dz, -1, 1, 0), d.y === null ? undefined : num(d.y, 0, 60, 1.2), src); },
+    bk(d, by) { if (role !== 'host') return; const b = bots.find(q => q.id === d.id && !q.net), src = botOf(by); if (!b || b.dead || !src || src.team === b.team) return; b.lastSrc = null; b.fin = null; botDie(b, false, src.name.toUpperCase() + ' finished ' + b.name.toUpperCase()); },
+    bu(d, by) { if (role !== 'host') return; const b = bots.find(q => q.id === d.id && !q.net), src = botOf(by); if (b && b.down && !b.dead && src && src.team === b.team) botUp(b, false); },
+    dz(d, by) { if (role !== 'host') return; const Z = zombies.find(q => q.id === d.id); if (!Z || Z.state === 'dead' || !Array.isArray(d.p)) return; const was = byBot; byBot = true; zBy = by;
+      try { damageZombie(Z, num(d.dmg, 0, 2000, 0), { head: !!d.h, limb: !!d.l, leg: !!d.g }, { x: num(d.p[0], -1e5, 1e5, Z.x), y: num(d.p[1], 0, 60, 1), z: num(d.p[2], -1e5, 1e5, Z.z) }, num(d.dx, -1, 1, 0), num(d.dz, -1, 1, 0)); } finally { byBot = was; zBy = null; } },
+    tk(d, by) { if (role !== 'host') return; for (const id of (d.l || []).slice(0, 40)) pkDrop(id); },
+    dp(d, by) { if (role !== 'host') return; for (const r of (d.l || []).slice(0, 12)) pkMake([0].concat(r)); },
+    pkq(d, by) { if (role !== 'host') return; const l = []; for (const id of (d.l || []).slice(0, 80)) { const p = pickups.find(q => q.id === id); if (p) l.push(pkRow(p)); } if (l.length) emit('pk+', { l }); },
+  };
+  function world(dt) {
+    if (!inTown) return;
+    if (state === 'play' && !started) { started = true; role = 'solo'; }
+    if (!started) return;
+    const want = N.mp.size ? (hostId() === N.id ? 'host' : 'guest') : 'solo';
+    if (want !== role) {
+      if (want === 'guest') {                      // hand my local world over: the host's copy is the real one from here
+        for (let i = bots.length - 1; i >= 0; i--) if (!bots[i].net) { if (!mates.includes(bots[i].g)) freeModel(bots[i]); else scene.remove(bots[i].g); bots.splice(i, 1); }
+        for (const Z of zombies) scene.remove(Z.g); zombies = []; zparts = []; for (const p of pickups) scene.remove(p.m); pickups = []; nearPick = null; fins.length = 0; P.revB = null; P.grab = null; $('grabUI').hidden = true;
+      } else {                                     // I run the world now (first to do so, or the old host left)
+        for (const b of bots) if (b.rm) { b.rm = false; b.wt = 0; b.tgt = null; b.car = null; } for (const Z of zombies) Z.rm = false;
+        for (const b of bots) entSeq = Math.max(entSeq, b.id || 0); for (const Z of zombies) entSeq = Math.max(entSeq, Z.id || 0); for (const p of pickups) pid = Math.max(pid, p.id || 0);
+        if (want === 'host' && role === 'solo') {  // each other real team takes over one team of bots: some stay as its bot team-mates, the rest leave
+          const teams = new Map(); for (const [id, pr] of N.mp) { if (N.match.ids.includes(id)) continue; const tm = pr.tm || id, e = teams.get(tm) || { n: 0, pr }; e.n++; teams.set(tm, e); }
+          let t = TEAMS - 1;
+          for (const [tm, e] of teams) { if (t < 1) break; const need = e.pr.fl ? Math.max(0, (num(e.pr.ts, 1, 4, 1) | 0) - e.n) : 0; let kept = 0;
+            for (let i = bots.length - 1; i >= 0; i--) { const b = bots[i]; if (b.team !== t || b.net) continue;
+              if (kept < need) { kept++; b.team = canon(tm); b.slot = kept; const hx = num(e.pr.x, -1e5, 1e5, b.x), hz = num(e.pr.z, -1e5, 1e5, b.z); for (let k = 0; k < 14; k++) { const x = hx + rand(-3, 3), z = hz + rand(-3, 3); if (!blocked(x, z, .5)) { b.x = b.lx = x; b.z = b.lz = z; break; } } b.wt = 0; }
+              else { freeModel(b); bots.splice(i, 1); } }
+            t--; }
+        }
+        pkPrev = new Set(pickups.filter(p => p.id).map(p => p.id)); rosT = 0; pklT = 2;
+      }
+      role = want;
+    }
+    if (role === 'host') {
+      wT += dt; rosT -= dt; pkT += dt; pklT -= dt;
+      if (rosT <= 0) { rosT = 3; emit('ros', { b: bots.filter(b => !b.net && !b.dead).map(b => [b.id, b.name, b.skin, b.wrap, tOut(b.team), b.gun.kind, b.slot, b.intro, b.finI, b.revI]) }); }
+      if (wT > .16) { wT = 0;
+        emit('w', { b: bots.filter(b => !b.net).map(b => [b.id, +b.x.toFixed(1), +b.z.toFixed(1), +b.yaw.toFixed(2), Math.max(0, b.hp | 0), (b.down ? 1 : 0) | (b.dead ? 2 : 0) | (b.aim ? 4 : 0) | (b.crouch ? 8 : 0) | (b.slide > 0 ? 16 : 0) | (b.heal ? 32 : 0) | (b.kneel ? 64 : 0) | (b.car ? 128 : 0) | (b.jump > 0 ? 256 : 0) | (b.melT > 0 ? 512 : 0), +(b.spd || 0).toFixed(1), +(b.y || 0).toFixed(1), (b.fc || 0) % 1000]),
+          z: zombies.filter(Z => Z.state !== 'dead').map(Z => [Z.id, +Z.x.toFixed(1), +Z.z.toFixed(1), Math.max(0, ZT.indexOf(Z.type)), Z.state === 'rise' ? 0 : 1, Z.crawl ? 1 : 0]) }); }
+      if (pkT > .3) { pkT = 0; const fresh = [], now2 = new Set();
+        for (const p of pickups) { if (!p.id) { p.id = ++pid; fresh.push(pkRow(p)); } now2.add(p.id); }
+        for (let i = 0; i < fresh.length; i += 50) emit('pk+', { l: fresh.slice(i, i + 50) });
+        const gone = []; for (const id of pkPrev) if (!now2.has(id)) gone.push(id); if (gone.length) emit('pk-', { l: gone }); pkPrev = now2;
+        if (pklT <= 0) { pklT = 4; emit('pkl', { l: [...now2] }); } }
+    } else if (role === 'guest') {
+      pkT += dt; staleT += dt;
+      if (pkT > .3) { pkT = 0; const have = new Set(), mine = [];
+        for (let i = pickups.length - 1; i >= 0; i--) { const p = pickups[i]; if (p.id) have.add(p.id); else { mine.push(pkRow(p).slice(1)); scene.remove(p.m); pickups.splice(i, 1); } }      // what I dropped goes to the host, and comes back as shared loot
+        if (mine.length) emit('dp', { l: mine.slice(0, 12) });
+        const took = []; for (const id of pkKnown) if (!have.has(id)) { took.push(id); pkTomb.add(id); } for (const id of took) pkKnown.delete(id); if (took.length) emit('tk', { l: took }); }
+      if (staleT > 1) { staleT = 0; const t = performance.now();
+        for (let i = bots.length - 1; i >= 0; i--) { const b = bots[i]; if (b.rm && !b.dead && !b.fin && t - (b.seen || t) > 3500) { freeModel(b); bots.splice(i, 1); } }
+        for (const Z of zombies.slice()) if (Z.rm && Z.state !== 'dead' && t - (Z.seen || t) > 3000) { zparts = zparts.filter(m => m.userData.z !== Z); removeZombie(Z); } }
+    }
+  }
   N.revDone = b => { revd = { to: b.net, k: ++revK }; b.grace = T + 2.5; };
   // ----- friends, messages -----
   function sendDm(id, text) { text = clean(text, 160).trim(); if (!text) return; if (!N.peers.get(id)) { N.note(nameOf(id) + ' is offline, so the message was not sent'); return; }
@@ -4510,13 +4620,11 @@ const net = (() => {
         if (inTown) for (const [id, pr] of N.mp) {     // real players on other teams appear as enemies
           if (N.match.ids.includes(id) || botOf(id) || pr.s === 2 || pr.out || typeof pr.x !== 'number') continue;
           const b = addBot({ skin: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, x: pr.x, z: num(pr.z, -1e5, 1e5, 0), yaw: 0, team: 100 + hashS(pr.tm || id) % 800, ai: 'bot', net: id, name: clean(pr.n, 16) || 'Player', gun: BGUNS[0], slot: 0, intro: 0, outro: 1, finI: 0, revI: 0 }); b.lastF = pr.f; }
-        if (state === 'play' && !started) { started = true;      // each real enemy team takes the place of one team of bots
-          const H = new Set([...N.mp].filter(([id]) => !N.match.ids.includes(id)).map(([id, pr]) => pr.tm || id)).size;
-          for (let t = TEAMS - 1, n = 0; t >= 1 && n < H; t--, n++) for (let i = bots.length - 1; i >= 0; i--) if (bots[i].team === t && !bots[i].net) { freeModel(bots[i]); bots.splice(i, 1); } }
+        world(dt);
       }
       mT += dt;
       if (mT > .1 && N.mroom) { mT = 0;
-        const me = { id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, tm: N.match.tk, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
+        const me = { id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, tm: N.match.tk, ts: cfg.team, fl: cfg.fill, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
           sp: state === 'play' && !P.drive && P.moving > .1 ? +(P.sprinting ? 6.6 : 3.6 * Math.min(1, P.moving)).toFixed(1) : 0, a: aimK > .5 ? 1 : 0, c: P.crouch ? 1 : 0, sl: P.slideT > 0 ? 1 : 0, f: fireN, rv: N.reviving, rd: revd, out: extracted ? 1 : 0, tk: voice.talk ? 1 : 0 };
         try { N.mroom.presence(me).catch(() => {}); } catch (e) {}
       }
@@ -5054,6 +5162,7 @@ function updateZombies(dt, alive) {
       if (g.position.y < -.7) removeZombie(Z);
       continue;
     }
+    if (Z.rm && Z.hx !== undefined) { Z.x += (Z.hx - Z.x) * k5; Z.z += (Z.hz - Z.z) * k5; }
     Z.tgT = (Z.tgT || 0) - dt;
     if (Z.tgT <= 0) { Z.tgT = 1 + Math.random(); let bd = Math.hypot(P.x - Z.x, P.z - Z.z) * (P.fin ? 9 : 1) + (P.dead ? 1e6 : 0); Z.tg = P; for (const b of bots) if (b.ai === 'bot' && !b.dead && !b.fin) { const q = Math.hypot(b.x - Z.x, b.z - Z.z); if (q < bd) { bd = q; Z.tg = b; } } }
     const TG = !Z.tg || Z.tg.dead || (Z.tg !== P && Z.tg.fin) ? P : Z.tg;
@@ -5104,7 +5213,7 @@ function updateZombies(dt, alive) {
     let atkArm = 0;
     if (d < reach + .15) {
       Z.atk -= dt; atkArm = Math.sin(clamp((.4 - Z.atk) / .4, 0, 1) * Math.PI);
-      if (Z.atk <= 0) { Z.atk = 1.05; if (alive) { if (TG === P) { if (P.y >= 1.6 || (P.grab && P.grab.Z === Z)) {} else if (!P.grab && !P.down && !P.drive && !P.fin && T > P.grabCd && Z.type !== 'brute' && Math.random() < (Z.crawl ? .5 : .22)) startGrab(Z); else hurt(tp.dmg * (Z.crawl ? .6 : 1), Z); } else botHurt(TG, tp.dmg * (Z.crawl ? .6 : 1), 0, 0, 1.2, null); } }
+      if (Z.atk <= 0) { Z.atk = 1.05; if (alive && !Z.rm) { if (TG === P) { if (P.y >= 1.6 || (P.grab && P.grab.Z === Z)) {} else if (!P.grab && !P.down && !P.drive && !P.fin && T > P.grabCd && Z.type !== 'brute' && Math.random() < (Z.crawl ? .5 : .22)) startGrab(Z); else hurt(tp.dmg * (Z.crawl ? .6 : 1), Z); } else botHurt(TG, tp.dmg * (Z.crawl ? .6 : 1), 0, 0, 1.2, null); } }
     } else Z.atk = .5;
     Z.atkK = damp(Z.atkK, atkArm, Math.min(1, dt * 14));
     const a = Z.atkK;
@@ -5228,7 +5337,7 @@ function updateDrive(dt) {
 function townTick(dt) {                         // zombie pressure and the way out; true once the match is won
   const living = zombies.reduce((n, z) => n + (z.state !== 'dead'), 0);
   threat = 1 + Math.floor(T / 75); wave = threat; spawnT -= dt;
-  if (spawnT <= 0 && living < Math.min(ZCAP[cfg.q], cfg.perf ? 8 : 99, 4 + threat * 2)) { const r = Math.random(); spawnZombie(T > 200 && r < .1 ? 'brute' : T > 70 && r < .32 ? 'runner' : 'walker'); spawnT = rand(.6, 2.2); }
+  if (!net.guest() && spawnT <= 0 && living < Math.min(ZCAP[cfg.q], cfg.perf ? 8 : 99, 4 + threat * 2) * net.zMul()) { const r = Math.random(); spawnZombie(T > 200 && r < .1 ? 'brute' : T > 70 && r < .32 ? 'runner' : 'walker'); spawnT = rand(.6, 2.2); }
   const ex = TX + town.exits[exitI][0], ez = TZ + town.exits[exitI][1];
   if (!exOpen && T >= 600) { exOpen = true; town.flare.visible = true; sfx.wave(); if (!P.dead) banner('Extraction open', 'Find the green marker on your map and hold the zone', 4.5); }
   const who = P.dead ? bots.find(b => b.team === 0 && b.ai === 'bot' && standing(b) && Math.hypot(ex - b.x, ez - b.z) < 4.5) : Math.hypot(ex - P.x, ez - P.z) < 4.5 && !P.down;     // once you are dead a teammate can get the team out

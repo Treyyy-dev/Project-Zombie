@@ -39,7 +39,7 @@ const NAME = /^[a-z0-9][a-z0-9_.-]{0,47}$/;
 function sendTo(c, obj) { if (!c.dead) frame(c.sock, JSON.stringify(obj)); }
 function leave(c, name) { const r = rooms.get(name); if (!r || !r.has(c)) return; r.delete(c); c.rooms.delete(name); for (const o of r.keys()) sendTo(o, { t: 'bye', room: name, peer: c.peer }); if (!r.size) rooms.delete(name); }
 function onMessage(c, text) {
-  if (text.length > 16384) return; let m; try { m = JSON.parse(text); } catch (e) { return; }
+  if (text.length > 65536) return; let m; try { m = JSON.parse(text); } catch (e) { return; }
   const now = Date.now(); if (now - c.win > 1000) { c.win = now; c.n = 0; } if (++c.n > 120) return;      // flood guard
   const name = typeof m.room === 'string' ? m.room : ''; if (!NAME.test(name)) return;
   if (m.t === 'join') { if (c.rooms.size >= 24) return; let r = rooms.get(name); if (!r) rooms.set(name, r = new Map()); if (!r.has(c)) { r.set(c, null); c.rooms.add(name); }
