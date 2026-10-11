@@ -3169,7 +3169,8 @@ function rayBot(o, d, maxD) {                    // nearest enemy body a shot pa
   return best;
 }
 function botHurt(b, dmg, dx, dz, y, src) {       // src: P, another bot, or null for a zombie
-  if (b.dead || b.fin || b.net || (src === P && b.team === 0)) return;
+  if (b.dead || b.fin || (src === P && b.team === 0)) return;
+  if (b.net) { if (src === P) { if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0); b.flinch = 1; net.hit(b, dmg); } return; }      // another real player: their own game decides what the hit does
   if (b.g && b.g.visible) burst(b.x, b.y + (y === undefined ? 1.2 : clamp(y - b.y, .2, 1.7)), b.z, 7, 0, 2.2, dx || 0, dz || 0);
   b.flinch = 1;
   if (b.down) { b.bleed -= dmg * .12; b.lastSrc = src; if (b.bleed <= 0) botDie(b, src === P); return; }
@@ -3187,7 +3188,8 @@ function botDie(b, byPlayer, how) {
   if (b.ai === 'bot' || byPlayer) feed(how || whoName(byPlayer ? P : b.lastSrc) + ' killed ' + b.name.toUpperCase(), byPlayer ? 'me' : b.team === 0 ? 'bad' : '');
   b.dead = true; b.down = false; b.respawn = b.ai === 'dummy' ? 3 : 25; bloodPool(b.x, b.z, 1.1, true);
   if (byPlayer && b.team !== 0) { kills++; score += 250; }
-  if (b.ai === 'bot' && pickups.length < 90) {     // they drop what they were carrying
+  if (b.net) b.respawn = 1e9;
+  if (b.ai === 'bot' && !b.net && pickups.length < 90) {     // they drop what they were carrying
     if (b.gun.kind !== 'pistol') { const p = lootPickup(b.x + rand(-.5, .5), b.z + rand(-.5, .5), b.gun.kind); if (p) { p.mag = b.gun.mag; p.res = b.gun.mag * 2; } }
     lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'cash'); lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'ammo'); if (Math.random() < .5) lootPickup(b.x + rand(-.7, .7), b.z + rand(-.7, .7), 'med');
   }
@@ -3243,6 +3245,7 @@ function spawnTeams() {                          // thirteen teams on the field:
 function botScan(b, dP) {
   let best = null, bd = 30, fin = null, fd = 14, friend = null, frd = 45;
   const consider = o => {
+    if (o.net && hostile(b, o)) return;            // bots leave real enemy players to real players
     const d = Math.hypot(o.x - b.x, o.z - b.z);
     if (hostile(b, o)) { if (standing(o)) { if (d < bd && los(b.x, b.z, o.x, o.z)) { bd = d; best = o; } } else if (isDown(o) && d < fd && los(b.x, b.z, o.x, o.z)) { fd = d; fin = o; } }
     else if (isDown(o) && d < (o === P ? 999 : frd)) { frd = d; friend = o; }
@@ -3451,6 +3454,7 @@ function updateBots(dt) {
   }
 }
 function startFin(att, vic, idx) {              // five-second finisher: both are locked together and cannot be hurt
+  if (att === P && vic.net) net.fin(vic, idx);
   const F = FINISHERS[idx] || FINISHERS[0], dx = vic.x - att.x, dz = vic.z - att.z, d = Math.hypot(dx, dz) || 1, nx = dx / d, nz = dz / d, ang = Math.atan2(nx, nz);
   att.x = vic.x - nx * F.d; att.z = vic.z - nz * F.d; if (att === P) resolve(P, .3);
   const f = { att, vic, F, t: 0, hi: 0, ang, nx, nz, cam: att === P || vic === P }; fins.push(f); att.fin = vic.fin = f;
@@ -3482,6 +3486,7 @@ function updateFins(dt) {
     fins.splice(i, 1); A.fin = V.fin = null;
     if (f.cam) { $('cutBars').hidden = true; hero.visible = false; hero.position.set(0, 0, 0); hero.rotation.set(0, 0, 0); applyPose(hero.userData.rig, {}); hud.hidden = false; touchEl.hidden = !isTouch; }
     if (V === P) { feed(whoName(A) + ' finished ' + playerName, 'bad'); P.noFeed = true; die(); continue; }
+    if (A === P && V.net) net.finAt = T;
     botDie(V, A === P, whoName(A) + ' finished ' + V.name.toUpperCase());
     if (A === P) { if (V.ai === 'bot') stat('fin'); gunRoot.visible = true; P.yaw = f.ang + Math.PI; P.pitch = 0; lastYaw = P.yaw; lastPitch = 0; banner('Finished ' + V.name, '+250', 1.6); }
   }
@@ -3548,12 +3553,12 @@ function reset() {
   canvas.classList.remove('hurt');
   loot = 0; exT = 0; extracted = false; threat = 1; inv.med = 0; nearPick = null; kickV = 0; hudCache.pick = undefined; $('pickTip').hidden = true; $('tPick').hidden = true; $('hWaveL').textContent = inTown ? 'Extraction in' : 'Wave';
   if (inTown) {
-    wave = 1; spawnT = 3; exitI = Math.floor((net.rng || Math.random)() * town.exits.length); net.rng = null;
+    wave = 1; spawnT = 3; exitI = Math.floor(net.exitR() * town.exits.length); net.rng = null;
     town.flare.position.set(TX + town.exits[exitI][0], 0, TZ + town.exits[exitI][1]);
     resetTown(); resolve(P, .42); spawnTeams(); net.spawnMates();
     for (let i = 0; i < 34; i++) { const q = freePoint(), r = Math.random(); lootPickup(q[0], q[1], r < .4 ? 'cash' : r < .62 ? 'ammo' : r < .76 ? 'med' : pick(['smg', 'shotgun', 'rifle', 'magnum', 'mpistol', 'mpistol', 'autoshot', 'lmg', 'sniper'])); } for (const l of town.loot) if (l.kind in GUN_IDX || l.y || Math.random() < .85) { lootPickup(l.x, l.z, l.kind); const q = pickups[pickups.length - 1]; if (l.y && q) { q.m.position.y += l.y; q.y = l.y; } }
     exOpen = false; town.flare.visible = false; P.drive = null; miniT = 0;
-    setWeather(pick(['sunny', 'dark']));
+    setWeather(net.match ? (net.match.seed & 1 ? 'sunny' : 'dark') : pick(['sunny', 'dark']));
     sfx.wave(); banner('Extraction · ' + wx.name, 'Loot the town and stay alive. The way out opens in 10 minutes: check your map.', 4.5);
   } else if (inTrain) { trainSetup(); net.spawnMates(); } else startWave();
 }
@@ -4171,13 +4176,13 @@ if (window.PZ_SERVER && !window.claude) (() => {
   const rooms = new Map(), EMPTY = Object.freeze([]); let ws = null, open = false, myPeer = '', retry = 1000;
   const send = o => { if (open) try { ws.send(JSON.stringify(o)); } catch (e) {} };
   function mk(name) {
-    const R = { name, me: {}, others: new Map(), hs: new Set(), snap: EMPTY, dirty: false, left: false };
+    const R = { name, me: {}, others: new Map(), hs: new Set(), ev: new Map(), snap: EMPTY, dirty: false, left: false };
     const build = () => { const a = [Object.freeze({ peer: myPeer, by: uidv, isMe: true, sameTab: true, kind: 'viewer', guest: false, presence: Object.freeze(Object.assign({}, R.me)), updatedAt: Date.now() })]; for (const o of R.others.values()) a.push(o); R.snap = Object.freeze(a); };
     R.fire = () => { if (R.dirty) return; R.dirty = true; setTimeout(() => { R.dirty = false; if (R.left) return; build(); for (const h of R.hs) { try { h({ peers: R.snap, joined: EMPTY, left: EMPTY, updated: EMPTY }); } catch (e) {} } }, 16); };
     R.api = {
       presence(p) { for (const k in p) { if (p[k] === null) delete R.me[k]; else R.me[k] = p[k]; } send({ t: 'p', room: name, pr: R.me }); R.fire(); return Promise.resolve(); },
       peers() { return R.snap; }, onPeers(h) { R.hs.add(h); R.fire(); return () => R.hs.delete(h); }, connected() { return open; }, onConnection() { return () => {}; },
-      emit() { return Promise.resolve(); }, on() { return () => {}; },
+      emit(topic, d) { send({ t: 'e', room: name, topic, d }); return Promise.resolve(); }, on(topic, h) { let set = R.ev.get(topic); if (!set) R.ev.set(topic, set = new Set()); set.add(h); return () => set.delete(h); },
       leave() { R.left = true; rooms.delete(name); send({ t: 'leave', room: name }); return Promise.resolve(); } };
     rooms.set(name, R); send({ t: 'join', room: name }); return R;
   }
@@ -4187,8 +4192,9 @@ if (window.PZ_SERVER && !window.claude) (() => {
     ws.onclose = () => { open = false; for (const R of rooms.values()) { R.others.clear(); R.fire(); } setTimeout(connect, retry); retry = Math.min(8000, retry * 2); };
     ws.onerror = () => {};
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; }
-      if (m.t === 'hi') { myPeer = m.peer; if (acct && m.uid !== acct.uid) { try { localStorage.removeItem('deadshift.acct'); } catch (x) {} location.reload(); } return; }      // the server no longer accepts this sign-in: go back to guest
+      if (m.t === 'hi') { myPeer = m.peer; if (m.now) window.PZ_OFF = m.now - Date.now(); if (acct && m.uid !== acct.uid) { try { localStorage.removeItem('deadshift.acct'); } catch (x) {} location.reload(); } return; }      // the server no longer accepts this sign-in: go back to guest
       const R = rooms.get(m.room); if (!R) return;
+      if (m.t === 'e') { const set = R.ev.get(m.topic); if (set) for (const h of set) { try { h({ topic: m.topic, data: m.d, by: m.by, peer: m.peer }); } catch (x) {} } return; }
       const put = q => R.others.set(q.peer, Object.freeze({ peer: q.peer, by: q.by, isMe: false, sameTab: false, kind: 'viewer', guest: false, presence: Object.freeze(q.pr || {}), updatedAt: Date.now() }));
       if (m.t === 'snap') { R.others.clear(); for (const q of m.peers || []) put(q); } else if (m.t === 'p') put(m); else if (m.t === 'bye') R.others.delete(m.peer);
       R.fire(); };
@@ -4269,8 +4275,10 @@ const net = (() => {
   const keep = () => { try { localStorage.setItem('deadshift.friends', JSON.stringify(friends)); for (const k in chats) if (chats[k].length > 40) chats[k] = chats[k].slice(-40); localStorage.setItem('deadshift.chats', JSON.stringify(chats)); } catch (e) {} };
   const clean = (x, n) => String(x == null ? '' : x).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, n);
   const num = (x, a, b, d) => { x = +x; return isFinite(x) ? Math.min(b, Math.max(a, x)) : d; };
+  const now = () => Date.now() + (window.PZ_OFF || 0), hashS = x => { let h = 2166136261; x = String(x); for (let i = 0; i < x.length; i++) { h ^= x.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
   const mulb = seed => { let a = seed | 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
   const known = new Set(), seenInv = new Set(), seenDm = new Set(), seenMm = new Set(), seenRd = {}, mpSeen = new Set();
+  let lastSt = 0, started = false; N.ev = false; N.finAt = -99;
   let seenGo = '', invQ = [], invs = [], dms = [], dmK = 0, go = null, mm = null, pjoin = 0, leaderGone = 0, chatWith = '', barMode = '', barT = 0, t1 = 0, mT = 0, fireN = 0, lastNS = 0, revK = 0, revd = null, lastPub = '', qStart = 0, mmTried = false, savedCfg = null, uiKey = '';
   const lobbyish = () => state === 'title' || state === 'lobby' || state === 'name' || state === 'hudedit' || state === 'result';
   const nameOf = id => id === N.id ? playerName : (N.peers.get(id) || {}).n || friends[id] || 'Player';
@@ -4289,7 +4297,7 @@ const net = (() => {
   N.pub = () => {
     if (!N.room) return;
     const me = { v: 1, id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, st: lobbyish() ? 'lobby' : inTrain ? 'train' : 'match', party: N.party, pj: pjoin, rdy: N.rdy,
-      tk: typeof voice !== 'undefined' && voice.talk ? 1 : 0, mode: N.isMember() ? null : { m: cfg.mode, t: cfg.team, f: cfg.fill }, inv: invs.length ? invs : null, dm: dms.length ? dms : null, go, q: N.q, mm };
+      tk: typeof voice !== 'undefined' && voice.talk ? 1 : 0, mode: N.isMember() ? null : { m: cfg.mode, t: cfg.team, f: cfg.fill }, inv: invs.length ? invs : null, dm: dms.length ? dms : null, go, q: N.q, mm, om: N.ev && N.match && N.match.t0 && N.match.t0 - now() > 12000 ? { k: N.match.k, seed: N.match.seed, t0: N.match.t0 } : null };
     const js = JSON.stringify(me); if (js === lastPub) return; lastPub = js;
     try { N.room.presence(me).catch(() => {}); } catch (e) {}
   };
@@ -4300,6 +4308,7 @@ const net = (() => {
       const old = N.peers.get(id); if (old && old.at > p.updatedAt) continue;
       N.peers.set(id, { id, n: clean(pr.n, 16) || 'Player', sk: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wr: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, st: pr.st === 'match' || pr.st === 'train' ? pr.st : 'lobby', party: clean(pr.party, 40) || id, pj: num(pr.pj, 0, 9e15, 0), rdy: pr.rdy ? 1 : 0, tk: pr.tk ? 1 : 0,
         mode: pr.mode && typeof pr.mode === 'object' ? { m: pr.mode.m === 'training' ? 'training' : 'extraction', t: num(pr.mode.t, 1, 4, 1) | 0, f: pr.mode.f ? 1 : 0 } : null,
+        om: pr.om && typeof pr.om === 'object' ? { k: clean(pr.om.k, 24), seed: num(pr.om.seed, 0, 2e9, 1) | 0, t0: num(pr.om.t0, 0, 9e15, 0) } : null,
         go: pr.go && typeof pr.go === 'object' ? pr.go : null, q: pr.q && typeof pr.q === 'object' ? pr.q : null, mm: pr.mm && typeof pr.mm === 'object' ? pr.mm : null,
         inv: Array.isArray(pr.inv) ? pr.inv.slice(0, 4) : [], dm: Array.isArray(pr.dm) ? pr.dm.slice(0, 4) : [], at: p.updatedAt });
     }
@@ -4310,15 +4319,15 @@ const net = (() => {
       for (const d of p.dm) { if (!d || d.to !== N.id) continue; const k = p.id + ':' + d.k + ':' + d.t; if (seenDm.has(k)) continue; seenDm.add(k);
         const log = chats[p.id] || (chats[p.id] = []); if (log.some(m => m.key === k)) continue; log.push({ m: 0, x: clean(d.x, 160), t: Date.now(), key: k }); keep();
         if (!(N.open && chatWith === p.id)) { unread[p.id] = (unread[p.id] || 0) + 1; N.note('Message from ' + p.n); } }
-      if (first) { if (p.go) { if (p.id === N.party) seenGo = clean(p.go.k, 24); } if (p.mm) seenMm.add(clean(p.mm.k, 24)); }
-      else if (p.mm && Array.isArray(p.mm.ids) && p.mm.ids.includes(N.id) && !seenMm.has(clean(p.mm.k, 24))) { seenMm.add(clean(p.mm.k, 24)); if (N.q && state === 'lobby') matched(p.mm); }
+      if (first) { if (p.go) { if (p.id === N.party) seenGo = clean(p.go.k, 24) + (p.go.t || ''); } if (p.mm) seenMm.add(clean(p.mm.k, 24) + clean(p.mm.u, 12)); }
+      else if (p.mm && Array.isArray(p.mm.ids) && p.mm.ids.includes(N.id) && !seenMm.has(clean(p.mm.k, 24) + clean(p.mm.u, 12))) { seenMm.add(clean(p.mm.k, 24) + clean(p.mm.u, 12)); if (N.q && state === 'lobby') matched(p.mm); }
     }
     if (N.isMember()) {
       const L = leader();
       if (!L || L.party !== L.id) { if (!leaderGone) leaderGone = performance.now(); else if (performance.now() - leaderGone > 5000) leaveParty('The party leader left'); }
       else { leaderGone = 0;
         if (!membersOf(N.party).some(p => p.id === N.id) && membersOf(N.party).length >= 3 && [...N.peers.values()].filter(p => p.party === N.party && p.id !== N.party && byJoin(p, { pj: pjoin, id: N.id }) < 0).length >= 3) leaveParty('That party is full');
-        else if (L.go && clean(L.go.k, 24) !== seenGo) { seenGo = clean(L.go.k, 24); if (state === 'lobby' && Array.isArray(L.go.ids) && L.go.ids.includes(N.id)) startOnline(L.go); } }
+        else if (L.go && clean(L.go.k, 24) + (L.go.t || '') !== seenGo) { seenGo = clean(L.go.k, 24) + (L.go.t || ''); if (state === 'lobby' && Array.isArray(L.go.ids) && L.go.ids.includes(N.id)) startOnline(L.go); } }
     }
     ui(true);
   }
@@ -4327,9 +4336,13 @@ const net = (() => {
   function invite(id) { const p = N.peers.get(id); if (!p) { N.note(nameOf(id) + ' is offline'); return; } if (N.isMember()) { N.note('Only the party leader can invite'); return; } if (membersOf(N.id).length >= 3) { N.note('Your party is full (4 players)'); return; }
     invs.push({ to: id, t: Date.now() }); invs = invs.slice(-3); N.pub(); N.note('Invite sent to ' + p.n); }
   function accept(i) { const L = N.peers.get(i.party); if (!L || L.party !== L.id) { N.note('That party is gone'); return; } if (membersOf(i.party).length >= 3) { N.note('That party is full'); return; }
-    N.party = i.party; pjoin = Date.now(); N.rdy = 0; leaderGone = 0; seenGo = L.go ? clean(L.go.k, 24) : ''; N.q = null; N.pub(); renderModes(); ui(true); N.note('You joined ' + L.n + "'s party. Ready up when you are set."); }
+    N.party = i.party; pjoin = Date.now(); N.rdy = 0; leaderGone = 0; seenGo = L.go ? clean(L.go.k, 24) + (L.go.t || '') : ''; N.q = null; N.pub(); renderModes(); ui(true); N.note('You joined ' + L.n + "'s party. Ready up when you are set."); }
   // ----- starting a match -----
-  const newGo = (m, ids) => ({ k: 'k' + rid(), seed: Math.floor(Math.random() * 2e9), m, tm: cfg.team, f: cfg.fill, ids, t: Date.now() });
+  function pickMatch() {                           // on the game's own server every team joins one shared match while it is still loading; otherwise open a new one
+    if (N.ev && N.on) { let best = null; for (const p of N.peers.values()) if (p.om && p.om.k && p.om.t0 - now() > 12000 && p.om.t0 - now() < LOADT * 1000 + 5000 && (!best || p.om.t0 > best.t0)) best = p.om; if (best) return { k: best.k, seed: best.seed, t0: best.t0 }; }
+    return { k: 'k' + rid(), seed: Math.floor(Math.random() * 2e9), t0: N.ev && N.on ? now() + LOADT * 1000 : 0 };
+  }
+  const newGo = (m, ids) => Object.assign(m === 'training' ? { k: 'k' + rid(), seed: 1, t0: 0 } : pickMatch(), { m, tm: cfg.team, f: cfg.fill, ids, tk: ids[0], t: Date.now() });
   N.pressPlay = () => {
     if (N.q) return;
     if (N.isMember()) { N.rdy = N.rdy ? 0 : 1; N.pub(); ui(true); return; }
@@ -4338,29 +4351,33 @@ const net = (() => {
     if (cfg.mode === 'training') { if (mem.length) launch(newGo('training', partyIds())); else play(true, true); return; }
     const size = 1 + mem.length; if (cfg.team < size) { cfg.team = size; renderModes(); }
     if (N.on && cfg.fill && cfg.team > size && [...N.peers.values()].some(p => p.st === 'lobby' && p.party !== N.id)) { N.q = { t: Date.now(), tm: cfg.team, sz: size }; qStart = performance.now(); mmTried = false; bar('q', 'Finding players…'); N.pub(); return; }
-    if (mem.length) launch(newGo('extraction', partyIds())); else play(true, true);
+    if (mem.length || (N.ev && N.on)) launch(newGo('extraction', partyIds())); else play(true, true);
   };
   function launch(g) { go = g; N.pub(); startOnline(g); }
-  function matched(m) { const g = { k: clean(m.k, 24), seed: num(m.seed, 0, 2e9, 1) | 0, m: 'extraction', tm: N.q ? N.q.tm : cfg.team, f: 1, ids: m.ids.slice(0, 4).map(x => clean(x, 40)), t: Date.now() }; if (membersOf(N.id).length) go = g; startOnline(g); }
+  function matched(m) { const g = { k: clean(m.k, 24), seed: num(m.seed, 0, 2e9, 1) | 0, t0: num(m.t0, 0, 9e15, 0), tk: clean(m.ids[0], 40), m: 'extraction', tm: N.q ? N.q.tm : cfg.team, f: 1, ids: m.ids.slice(0, 4).map(x => clean(x, 40)), t: Date.now() }; if (membersOf(N.id).length) go = g; startOnline(g); }
   function startOnline(g) {
     const ids = (Array.isArray(g.ids) ? g.ids : []).slice(0, 4).map(x => clean(x, 40)); if (!ids.includes(N.id)) ids.push(N.id);
     N.rdy = 0; N.q = null; if (barMode === 'q') bar('');
-    N.match = { k: clean(g.k, 24) || 'k' + rid(), seed: num(g.seed, 0, 2e9, 1) | 0, ids };
+    N.match = { k: clean(g.k, 24) || 'k' + rid(), seed: num(g.seed, 0, 2e9, 1) | 0, ids, t0: num(g.t0, 0, 9e15, 0), tk: clean(g.tk, 40) || ids[0] }; lastSt = 0; started = false;
     savedCfg = { mode: cfg.mode, team: cfg.team, fill: cfg.fill };
     cfg.mode = g.m === 'training' ? 'training' : 'extraction'; cfg.team = Math.max(ids.length, num(g.tm, 1, 4, ids.length) | 0); cfg.fill = g.f ? 1 : 0;
     N.mp.clear(); mpSeen.clear(); const mk = N.match.k;
     if (N.room && N.room.join) N.room.join('m-' + mk.toLowerCase().replace(/[^a-z0-9]/g, '')).then(r => {
       if (!N.match || N.match.k !== mk) { r.leave().catch(() => {}); return; }
       N.mroom = r; r.onPeers(ch => { N.mp.clear(); for (const p of ch.peers) { if (p.isMe || !p.presence) continue; const id = clean(p.presence.id, 40); if (id && id !== N.id) { N.mp.set(id, p.presence); if (!mpSeen.has(id)) { mpSeen.add(id); if (p.presence.rd) seenRd[id] = p.presence.rd.k; } } } }, () => {});
+      if (N.ev && r.on) { r.on('hit', onHit); r.on('ko', onKo); r.on('fin', onFin); }
     }).catch(() => {});
-    play(true, true); N.pub();
+    play(true, true);
+    if (N.match.t0 && state === 'intro') cutT = clamp(LOADT - (N.match.t0 - now()) / 1000, 0, LOADT - 1);      // everyone in the match finishes loading at the same moment
+    N.pub();
   }
   N.leaveMatch = () => {
     if (N.mroom) { try { N.mroom.leave().catch(() => {}); } catch (e) {} } N.mroom = null; N.match = null; N.mp.clear(); N.reviving = null; revd = null; N.rng = null;
     if (savedCfg) { cfg.mode = savedCfg.mode; cfg.team = savedCfg.team; cfg.fill = savedCfg.fill; savedCfg = null; renderModes(); }
   };
   N.mateCount = () => N.match ? N.match.ids.length - 1 : 0;
-  N.seedStart = () => { N.rng = N.match && inTown ? mulb(N.match.seed) : null; };
+  N.seedStart = () => { N.rng = N.match && inTown ? mulb(N.match.seed ^ hashS(N.match.tk)) : null; };
+  N.exitR = () => N.match ? mulb(N.match.seed + 7)() : Math.random();
   N.slotOff = () => { const i = N.match ? Math.max(0, N.match.ids.indexOf(N.id)) : 0; return [[0, 0], [1.7, 0], [-1.7, 0], [0, 1.7]][i] || [0, 0]; };
   N.spawnMates = () => {                           // the other players on my team, standing in for bot team-mates
     if (!N.match) return; let slot = 1;
@@ -4369,7 +4386,7 @@ const net = (() => {
   };
   N.drive = (b, dt) => {                           // a remote team-mate follows what their own game reports
     const pr = N.mp.get(b.net);
-    if (!pr) { if (mpSeen.has(b.net) && !b.dead) { b.net = null; feed(b.name.toUpperCase() + ' disconnected · a bot took over'); } b.spd = 0; return; }
+    if (!pr) { if (mpSeen.has(b.net) && !b.dead) { if (b.team === 0) { b.net = null; feed(b.name.toUpperCase() + ' disconnected · a bot took over'); } else { feed(b.name.toUpperCase() + ' left the match'); b.dead = true; b.down = false; b.respawn = 0; } } b.spd = 0; return; }
     const x = num(pr.x, -1e5, 1e5, b.x), z = num(pr.z, -1e5, 1e5, b.z), k = Math.min(1, dt * 10);
     if (Math.hypot(x - b.x, z - b.z) > 12) { b.x = x; b.z = z; } else { b.x += (x - b.x) * k; b.z += (z - b.z) * k; }
     b.y = num(pr.y, 0, 60, 0); let dy = num(pr.yaw, -1e3, 1e3, 0) - b.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); b.yaw += dy * k;
@@ -4379,12 +4396,22 @@ const net = (() => {
   };
   N.state = b => {
     const pr = N.mp.get(b.net); if (!pr) return;
-    if (pr.s === 2 || pr.out) { if (!b.dead) { b.dead = true; b.down = false; b.respawn = 1e9; feed(b.name.toUpperCase() + (pr.out ? ' extracted' : ' died'), pr.out ? '' : 'bad'); if (pr.out) { b.x = 1e5; b.z = 1e5; } if (P.revB === b) P.revB = null; } return; }
+    if (pr.s === 2 || pr.out) { if (!b.dead) { b.dead = true; b.down = false; b.respawn = 1e9; if (pr.out || !N.ev) feed(b.name.toUpperCase() + (pr.out ? ' extracted' : ' died'), pr.out ? '' : 'bad'); if (pr.out) { b.x = 1e5; b.z = 1e5; } if (P.revB === b) P.revB = null; } return; }
     b.hp = num(pr.hp, 0, 200, 100);
-    if (pr.s === 1) { if (!b.down && !(T < (b.grace || 0))) { b.down = true; b.rev = 0; feed(b.name.toUpperCase() + ' is down', 'bad'); banner(b.name + ' is down', 'Get to them and revive', 2); } if (b.down) b.bleed = Math.max(2, num(pr.bl, 0, 90, 30)); }
+    if (pr.s === 1) { if (!b.down && !(T < (b.grace || 0))) { b.down = true; b.rev = 0; if (!N.ev) feed(b.name.toUpperCase() + ' is down', 'bad'); if (b.team === 0) banner(b.name + ' is down', 'Get to them and revive', 2); } if (b.down) b.bleed = Math.max(2, num(pr.bl, 0, 90, 30)); }
     else if (b.down && P.revB !== b) { b.down = false; b.rev = 0; }
   };
   N.shot = () => { fireN++; };
+  // ----- player versus player: what I do to another real player is sent to them, and their own game applies it -----
+  N.hit = (b, dmg) => { if (N.ev && N.mroom) N.mroom.emit('hit', { to: b.net, dmg: Math.round(dmg) }); };
+  N.fin = (b, idx) => { N.finAt = T; if (N.ev && N.mroom) N.mroom.emit('fin', { to: b.net, i: idx }); };
+  const botOf = id => bots.find(b => b.net === id) || null;
+  function onHit(m) { const d = m.data || {}; if (d.to !== N.id || state !== 'play' || P.dead || P.fin || !N.match || N.match.ids.includes(m.by)) return; const src = botOf(m.by), dmg = num(d.dmg, 0, 400, 0);
+    if (P.down) { P.bleed -= dmg * .12; if (src) P.lastHit = src; } else hurt(dmg, src || { x: P.x, z: P.z + 1, name: 'A player' }); }
+  function onFin(m) { const d = m.data || {}; if (d.to !== N.id || state !== 'play' || !P.down || P.dead || P.fin) return; const a = botOf(m.by); if (a && !a.fin && !a.dead) { ensureModel(a); startFin(a, P, num(d.i, 0, FINISHERS.length - 1, 0) | 0); } }
+  function onKo(m) { const d = m.data || {}, name = clean(d.n, 16).toUpperCase() || 'A PLAYER', mine = d.by === N.id, mate = !!N.match && N.match.ids.includes(m.by), fin = mine && d.s === 2 && T - N.finAt < 9;
+    if (!fin) feed((clean(d.byN, 20) || 'A ZOMBIE') + (d.s === 2 ? ' killed ' : ' knocked ') + name, mine ? 'me' : mate ? 'bad' : '');
+    if (mine && !mate) { if (d.s === 1) { hitMark(2); score += 100; stat('knock'); banner('Knocked ' + clean(d.n, 16), 'Get close to finish them', 1.6); } else if (!fin) { hitMark(2); kills++; score += 250; } } }
   N.voiceGroup = () => { if (N.match && N.match.ids.length > 1) return { key: 'm' + N.match.k, ids: N.match.ids.slice() }; const ids = partyIds(); return ids.length > 1 && ids.every(id => id === N.id || N.peers.has(id)) ? { key: 'p' + ids[0], ids } : null; };
   N.talking = id => { if (id === N.id) return !!voice.talk; const m = N.mp.get(id); if (m) return !!m.tk; const p = N.peers.get(id); return !!(p && p.tk && (N.match ? N.match.ids.includes(id) : partyIds().includes(id))); };
   N.revDone = b => { revd = { to: b.net, k: ++revK }; b.grace = T + 2.5; };
@@ -4466,9 +4493,9 @@ const net = (() => {
         if (!mmTried && t > 2 && units.length > 1 && units[0].id === N.id) {       // first in the queue builds the team: every other player found has a 50% chance of joining it, otherwise a bot takes the place
           mmTried = true; const seed = Math.floor(Math.random() * 2e9), r = mulb(seed ^ 0x5bd1e995); let total = N.q.sz; const ids = partyIds();
           for (const u of units.slice(1)) if (total + u.sz <= N.q.tm && r() < .5) { total += u.sz; ids.push(u.id); for (const m of membersOf(u.id)) ids.push(m.id); }
-          if (ids.length > N.q.sz) { mm = { k: 'k' + rid(), seed, ids: ids.slice(0, 4), t: Date.now() }; seenMm.add(mm.k); N.pub(); matched(mm); }
+          if (ids.length > N.q.sz) { { const pm = pickMatch(); mm = { k: pm.k, seed: pm.seed, t0: pm.t0, ids: ids.slice(0, 4), t: Date.now(), u: rid() }; } seenMm.add(mm.k + mm.u); N.pub(); matched(mm); }
         }
-        if (N.q && t > 6) { const had = membersOf(N.id).length; N.q = null; bar(''); if (had) launch(newGo('extraction', partyIds())); else play(true, true); }
+        if (N.q && t > 6) { const had = membersOf(N.id).length; N.q = null; bar(''); if (had || (N.ev && N.on)) launch(newGo('extraction', partyIds())); else play(true, true); }
       }
     }
     if (N.match && (state === 'play' || state === 'spec' || state === 'intro' || state === 'pause' || state === 'inv' || state === 'map' || state === 'over' || state === 'outro')) {
@@ -4477,9 +4504,19 @@ const net = (() => {
         if (pr.rv && pr.rv.to === N.id && P.down && !P.dead) { P.rev = Math.max(.1, num(pr.rv.p, 0, 10, 0)); P.revAt = T; }
         if (pr.rd && pr.rd.to === N.id && pr.rd.k !== seenRd[id]) { seenRd[id] = pr.rd.k; if (P.down && !P.dead && state === 'play') revivePlayer(); }
       }
+      if (N.ev && N.mroom) {
+        const st = P.dead ? 2 : P.down ? 1 : 0;      // tell the match when I go down or die, and who did it
+        if (st !== lastSt) { if (st > lastSt && (state === 'play' || state === 'spec' || state === 'over')) N.mroom.emit('ko', { s: st, by: P.lastHit && P.lastHit.net ? P.lastHit.net : null, n: clean(playerName, 16), byN: P.lastHit ? clean(whoName(P.lastHit), 20) : '' }); lastSt = st; }
+        if (inTown) for (const [id, pr] of N.mp) {     // real players on other teams appear as enemies
+          if (N.match.ids.includes(id) || botOf(id) || pr.s === 2 || pr.out || typeof pr.x !== 'number') continue;
+          const b = addBot({ skin: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, x: pr.x, z: num(pr.z, -1e5, 1e5, 0), yaw: 0, team: 100 + hashS(pr.tm || id) % 800, ai: 'bot', net: id, name: clean(pr.n, 16) || 'Player', gun: BGUNS[0], slot: 0, intro: 0, outro: 1, finI: 0, revI: 0 }); b.lastF = pr.f; }
+        if (state === 'play' && !started) { started = true;      // each real enemy team takes the place of one team of bots
+          const H = new Set([...N.mp].filter(([id]) => !N.match.ids.includes(id)).map(([id, pr]) => pr.tm || id)).size;
+          for (let t = TEAMS - 1, n = 0; t >= 1 && n < H; t--, n++) for (let i = bots.length - 1; i >= 0; i--) if (bots[i].team === t && !bots[i].net) { freeModel(bots[i]); bots.splice(i, 1); } }
+      }
       mT += dt;
       if (mT > .1 && N.mroom) { mT = 0;
-        const me = { id: N.id, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
+        const me = { id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, tm: N.match.tk, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
           sp: state === 'play' && !P.drive && P.moving > .1 ? +(P.sprinting ? 6.6 : 3.6 * Math.min(1, P.moving)).toFixed(1) : 0, a: aimK > .5 ? 1 : 0, c: P.crouch ? 1 : 0, sl: P.slideT > 0 ? 1 : 0, f: fireN, rv: N.reviving, rd: revd, out: extracted ? 1 : 0, tk: voice.talk ? 1 : 0 };
         try { N.mroom.presence(me).catch(() => {}); } catch (e) {}
       }
@@ -4491,7 +4528,7 @@ const net = (() => {
       const [room, user] = await Promise.all([claude.use('room'), claude.use('user')]);
       if (user) { try { const id = await user.id(); if (id) { const was = N.id; N.id = clean(id, 40); if (N.party === was) N.party = N.id; } } catch (e) {} }
       if (!room) { ui(true); return; }
-      N.room = room; room.onPeers(ch => { N.on = room.connected(); sync(ch.peers); }, () => { N.on = false; ui(true); }); N.pub();
+      N.room = room; N.ev = !!window.PZ_SERVER; room.onPeers(ch => { N.on = room.connected(); sync(ch.peers); }, () => { N.on = false; ui(true); }); N.pub();
     } catch (e) {}
     ui(true);
   })();

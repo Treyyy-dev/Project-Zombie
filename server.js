@@ -45,6 +45,7 @@ function onMessage(c, text) {
   if (m.t === 'join') { if (c.rooms.size >= 24) return; let r = rooms.get(name); if (!r) rooms.set(name, r = new Map()); if (!r.has(c)) { r.set(c, null); c.rooms.add(name); }
     sendTo(c, { t: 'snap', room: name, peers: [...r].filter(([o, pr]) => o !== c && pr).map(([o, pr]) => ({ peer: o.peer, by: o.uid, pr })) }); }
   else if (m.t === 'leave') leave(c, name);
+  else if (m.t === 'e') { const r = rooms.get(name); if (!r || !r.has(c) || typeof m.topic !== 'string' || m.topic.length > 24) return; for (const o of r.keys()) if (o !== c) sendTo(o, { t: 'e', room: name, topic: m.topic, d: m.d, by: c.uid, peer: c.peer }); }
   else if (m.t === 'p') { const r = rooms.get(name); if (!r || !r.has(c) || !m.pr || typeof m.pr !== 'object') return; if (JSON.stringify(m.pr).length > 8192) return; r.set(c, m.pr); for (const o of r.keys()) if (o !== c) sendTo(o, { t: 'p', room: name, peer: c.peer, by: c.uid, pr: m.pr }); }
 }
 
