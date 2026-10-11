@@ -238,6 +238,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
 .shopbtn:hover{background:#ffc572}
 .shopbtn b{font-family:var(--data);font-weight:400;font-size:14px;background:#12100a;color:var(--sodium);padding:4px 8px;font-variant-numeric:tabular-nums}
 .tabs{display:flex;gap:8px;align-items:center}
+#ldTabs{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}#ldTabs .tab{flex:none;white-space:nowrap;padding:7px 11px}
 .tab{background:transparent;border:1px solid var(--line);color:var(--bone);padding:7px 14px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:14px}
 .tab[aria-pressed="true"]{background:var(--bone);color:#12100a;border-color:var(--bone)}
 .tabs .sub{margin-left:auto;color:var(--sodium)}
@@ -2015,6 +2016,19 @@ const REVIVES = [
   SK('Usopp', 900, 0x6a4a2a, 0x7a5a32, 'bandana', { hs: 'curly', ld: 0x9aa23a, t: 0xb07a4e, h: 0x0e0c0c, f: 'goggles longnose', x: 'kit backpack slingshot', a: 0xc8a23a, b: 0x3a2a1c, g: 's' });
   SK('Nami', 900, 0x3a8ae2, 0x1c3a7c, 'bare', { hs: 'long', fem: 1, t: 0xf4cdb0, h: 0xf08a2a, x: 'stripes buckle', a: 0xf4f4f0, b: 0xb8742a, g: 's' });
   WR('Sunny Orange', 300, { col: 0xf08a2a }); ML('Clima-Tact', 800, 15, 86, .34, 2.3, 2, .7, 'hip', '86 damage · very fast staff');
+  // ----- Portal Series, Smith House Series, Elmore Series: fan-made sets in the style of the cartoons -----
+  SK('Rick', 900, 0xf2f2ee, 0x7a5a3a, 'bare', { hs: 'spiky', t: 0xd9cdbb, h: 0xa9d9ee, f: 'unibrow', x: 'coat', a: 0x8fd0e8, b: 0x1c1c1c, g: 's' });
+  SK('Morty', 900, 0xf2dc3a, 0x2a4a8a, 'bare', { t: 0xf0c8a0, h: 0x5a3a1e, b: 0xf4f4f0, g: 's', sz: .85 });
+  SK('Space Beth', 900, 0x1c2438, 0x1c2438, 'bare', { hs: 'pony', fem: 1, t: 0xf0c8a0, h: 0xe8cf6a, x: 'pauldrons zip neon', a: 0x4ad0ff, b: 0x101018, g: 0x101018 });
+  WR('Portal Green', 300, { col: 0x7cf23a }); ML('Plumbus', 800, 8, 108, .58, 2.0, 1, 1.1, 'hip', '108 damage · heavy knockback');
+  SK('Mr. Poopybutthole', 900, 0xf2d84a, 0x2a6a7a, 'tallhead', { ld: 0x15151a, t: 0xf2d84a, h: 0xf2d84a, b: 0x1c1c1c, g: 0xf2d84a });
+  SK('Summer', 900, 0xf08ab8, 0xf4f4f0, 'bare', { hs: 'pony', fem: 1, t: 0xf0c8a0, h: 0xe8642a, b: 0xf4f4f0, g: 's' });
+  SK('Jerry', 900, 0x5a9a4a, 0x8a7448, 'bare', { t: 0xf0c8a0, h: 0x5a3a1e, b: 0x3a2a1c, g: 's' });
+  WR('Smith Yellow', 300, { col: 0xf2d84a }); ML('Ooh-Wee Baton', 700, 15, 84, .34, 2.1, 1, .6, 'hip', '84 damage · very fast');
+  SK('Gumball', 900, 0xd8b890, 0x7a7e86, 'cat', { t: 0x5ab4f0, h: 0x5ab4f0, x: 'scarf', a: 0x8a5a3a, b: 0x5ab4f0, g: 0x5ab4f0, sz: .8 });
+  SK('Darwin', 900, 0xf28a1e, 0xf28a1e, 'fish', { t: 0xf28a1e, h: 0xf28a1e, b: 0x3aa64a, g: 0xf28a1e, sz: .72 });
+  SK('Anais', 900, 0xf08a2a, 0xf4a8c8, 'bunny', { t: 0xf4a8c8, h: 0xf4a8c8, x: 'robe', a: 0xf08a2a, b: 0xf4a8c8, g: 0xf4a8c8, sz: .62 });
+  WR('Elmore Blue', 300, { col: 0x4aa8e8 }); ML('Lunch Tray', 700, 14, 78, .46, 1.9, 1, 1.5, 'hip', '78 damage · biggest knockback');
   const sI = n => SKINS.findIndex(q => q.name === n), wI = n => WRAPS.findIndex(q => q.name === n), mI = n => MELEE.findIndex(q => q.name === n), aI = n => INTROS.findIndex(q => q.name === n), fI = n => FINISHERS.findIndex(q => q.name === n), rI = n => REVIVES.findIndex(q => q.name === n);
   for (const [name, sk, w, m, a, f, r] of [['Day Job Series', ['Barista', 'Grill Chef', 'Mail Carrier'], 'Mustard', 'Skillet', 'Two-Step', 'Haymaker', 'Canteen'], ['After Dark Series', ['Hacker', 'DJ Static', 'Bouncer'], 'Amethyst', 'Tyre iron', 'Raise the Roof', 'Front Kick', 'Thump'],
     ['Task Force Series', ['SWAT Breacher', 'Bomb Tech', 'Rooftop Sniper'], 'Gunmetal', 'Bowie knife', 'Bounce', 'Axe Handle', 'Whisper'], ['Far Lands Series', ['Arctic Scout', 'Desert Nomad', 'Jungle Guide'], 'Glacier', 'Ice axe', 'Windmill Arms', 'Front Kick', 'Canteen'],
@@ -2022,6 +2036,9 @@ const REVIVES = [
     ['Scrap Heap Series', ['Chrome Bot', 'Rust Bot', 'Moon Miner'], 'Copper', 'Meat tenderiser', 'Two-Step', 'Haymaker', 'Thump'], ['Big Top Series', ['Ring Master', 'Mime', 'Luchadora'], 'Coral', 'Cricket bat', 'Salsa', 'Moon Shot', 'Canteen'],
     ['Golden Age Series', ['Pharaoh', 'Disco King', 'Diamond Guard'], 'Rose gold', 'Wakizashi', 'Raise the Roof', 'Axe Handle', 'Whisper'], ['Outlaw Series', ['Bandit King', 'Sky Pirate', 'Ranch Hand'], 'Rust', 'Garden spade', 'Bounce', 'Front Kick', 'Thump']])
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
+  BUNDLES.push({ name: 'Smith House Series', pin: 1, skins: ['Mr. Poopybutthole', 'Summer', 'Jerry'].map(sI), wrap: wI('Smith Yellow'), melee: mI('Ooh-Wee Baton'), intro: Math.max(0, aI('Big Wave')), fin: fI('Haymaker'), rev: rI('Pep Talk') });
+  BUNDLES.push({ name: 'Elmore Series', pin: 1, skins: ['Gumball', 'Darwin', 'Anais'].map(sI), wrap: wI('Elmore Blue'), melee: mI('Lunch Tray'), intro: Math.max(0, aI('Cartwheel')), fin: fI('Moon Shot'), rev: rI('Chest Pump') });
+  BUNDLES.push({ name: 'Portal Series', pin: 1, skins: ['Rick', 'Morty', 'Space Beth'].map(sI), wrap: wI('Portal Green'), melee: mI('Plumbus'), intro: Math.max(0, aI('Shrug')), fin: fI('Axe Handle'), rev: rI('Slap Awake') });
   BUNDLES.push({ name: 'Going Merry Series', pin: 1, skins: ['Franky', 'Usopp', 'Nami'].map(sI), wrap: wI('Sunny Orange'), melee: mI('Clima-Tact'), intro: Math.max(0, aI('Windmill Arms')), fin: fI('Front Kick'), rev: rI('Thump') });
   BUNDLES.push({ name: 'Thousand Sunny Series', pin: 1, skins: ['Chopper', 'Robin', 'Brook'].map(sI), wrap: wI('Sakura Pink'), melee: mI('Soul Cane'), intro: Math.max(0, aI('Salsa')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Grand Line Series', pin: 1, skins: ['Luffy', 'Zoro', 'Sanji'].map(sI), wrap: wI('Straw Gold'), melee: mI('Wado Katana'), intro: Math.max(0, aI('Raise the Roof')), fin: fI('Haymaker'), rev: rI('Canteen') });
@@ -2195,7 +2212,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
   if (has('stars')) for (const [x, y] of [[-.1, 1.34], [.07, 1.2], [-.03, 1.1], [.11, 1.42]]) hb(heroUp, gold, .03, .03, .006, x, y, .136).rotation.z = .78;
   if (has('scarf')) cyl(heroUp, acc, .09, .1, .07, 0, 1.51, .005);
   if (has('cape')) hb(heroUp, acc, .44, 1.0, .02, 0, 1.0, -.19).rotation.x = .09;
-  const bareFace = ['reindeer', 'strawhat', 'bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
+  const bareFace = ['cat', 'fish', 'bunny', 'tallhead', 'reindeer', 'strawhat', 'bearhat', 'dog', 'cap', 'beanie', 'hardhat', 'chef', 'bandana', 'cowboy', 'bare', 'boonie', 'pirate', 'viking', 'wizard', 'crown', 'goalie', 'clown', 'alien', 'luchador'].includes(S.hd);
   hr(heroUp, S.hd === 'hood' || S.hd === 'astro' ? uni : S.hd === 'skull' ? bone : S.hd === 'robot' || S.hd === 'knight' ? steel : bareFace ? tone : black, .055, .05, [0, 1.48, 0], [0, 1.56, .005], 8);   // neck
 
   // ----- firearm held at the low ready, muzzle down to the left -----
@@ -2244,6 +2261,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (fhas('mask')) hb(H, pale, .13, .075, .03, 0, -.065, .095);
     if (fhas('patch')) hb(H, black, .046, .036, .014, .036, .018, .106);
     if (fhas('longnose')) hr(H, tone, .017, .013, [0, -.012, .1], [0, -.02, .24], 6);      // a very long nose
+    if (fhas('unibrow')) hb(H, hair, .1, .014, .012, 0, .044, .104);
     if (fhas('steelnose')) hb(H, steel, .03, .045, .035, 0, -.012, .11);
     if (fhas('scar')) { hb(H, mk(0x7a3a30, 4), .034, .008, .006, -.04, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.046, -.008, .106); hb(H, mk(0x7a3a30, 4), .006, .016, .006, -.034, -.008, .106); }      // stitched scar under one eye
     if (fhas('paint')) { hb(H, mk(0x1c2a16), .16, .014, .012, 0, -.02, .1); hb(H, mk(0x1c2a16), .1, .014, .012, -.03, .05, .1); }
@@ -2262,6 +2280,19 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
       for (const x of [-1, 1]) { const e = ball(H, lid, .034, x * .075, .135, -.01); e.scale.set(1, 1.15, .8); } break;      // white hat with two round ears, open at the face
     case 'dog': face(true); for (const x of [-1, 1]) { const e = hb(H, lid, .05, .13, .03, x * .115, -.02, -.01); e.rotation.z = x * -.25; } { const sn = ball(H, tone, .05, 0, -.045, .1); sn.scale.set(1.25, .8, .9); } ball(H, black, .02, 0, -.03, .145);
       for (const x of [-1, 1]) { ball(H, white, .03, x * .04, .03, .092); ball(H, black, .014, x * .04, .03, .118); } break;      // floppy ears, a wide muzzle, big round eyes
+    case 'cat': { ball(H, tone, .15, 0, .03, 0).scale.set(1.18, 1, 1);      // round cartoon cat: pointed ears, huge eyes, whiskers
+      for (const x of [-1, 1]) { cone(H, tone, .05, .1, x * .1, .19, -.01).rotation.z = x * -.3; ball(H, white, .05, x * .06, .05, .105).scale.set(1, 1.15, .7); ball(H, black, .02, x * .055, .045, .14);
+        for (const y of [0, .025]) hb(H, black, .07, .004, .004, x * .19, -.02 + y, .06).rotation.z = x * (y ? .15 : -.1); }
+      ball(H, mk(0xe0865a), .014, 0, -.005, .15); hb(H, black, .05, .006, .006, 0, -.04, .14); break; }
+    case 'fish': { ball(H, tone, .155, 0, .03, 0).scale.set(1.05, 1.1, 1);      // a goldfish with legs: round body-head, side fins, a tail fin
+      for (const x of [-1, 1]) { ball(H, white, .055, x * .06, .07, .1).scale.set(1, 1.2, .7); ball(H, black, .024, x * .058, .07, .14); hb(H, tone, .012, .08, .09, x * .16, 0, -.02).rotation.z = x * -.5; }
+      hb(H, mk(0xb0401a, 4), .09, .012, .008, 0, -.04, .145); hb(H, tone, .012, .13, .11, 0, .03, -.18); break; }
+    case 'bunny': { ball(H, tone, .135, 0, .02, 0);      // small rabbit with two tall ears
+      for (const x of [-1, 1]) { hr(H, tone, .03, .026, [x * .05, .12, -.01], [x * .08, .4, -.03], 8); ball(H, tone, .026, x * .08, .4, -.03); ball(H, white, .04, x * .05, .04, .1).scale.set(1, 1.15, .7); ball(H, black, .016, x * .048, .04, .127); }
+      ball(H, mk(0xd05a7a), .012, 0, -.01, .132); hb(H, black, .03, .005, .005, 0, -.04, .125); break; }
+    case 'tallhead': { cyl(H, tone, .1, .108, .26, 0, .07, 0); ball(H, tone, .1, 0, .2, 0); ball(H, tone, .108, 0, -.06, 0);      // long rounded head with a tiny top hat
+      for (const x of [-1, 1]) { ball(H, white, .034, x * .04, .1, .085).scale.set(1, 1.1, .7); ball(H, black, .013, x * .04, .1, .108); }
+      hb(H, mk(0x6a3028, 4), .07, .01, .008, 0, -.01, .104); cyl(H, lid, .075, .075, .012, 0, .3, 0); cyl(H, lid, .048, .05, .09, 0, .35, 0); break; }
     case 'hood': skull(black); ball(H, lid, .137, 0, .005, -.005).scale.set(1, 1.17, 1.08); hb(H, lens, .19, .1, .03, 0, .015, .135); respirator(black, .17); break;
     case 'visor': { skull(black); ball(H, lid, .134, 0, .01, -.005, Math.PI * .58).scale.set(1, 1.1, 1.1); hb(H, lid, .2, .1, .06, 0, -.07, -.11);
       hb(H, Phong({ color: 0x0a1014, shininess: 160, specular: 0xc8dce4, transparent: true, opacity: .7 }), .2, .13, .012, 0, -.015, .138).castShadow = false; break; }
@@ -2317,6 +2348,7 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (S.hs === 'pony') { ball(H, hair, .046, 0, .04, -.125); hr(H, hair, .03, .012, [0, .03, -.14], [0, -.16, -.17], 6); }
     else if (S.hs === 'long') hb(H, hair, .2, .32, .05, 0, -.13, -.088);
     else if (S.hs === 'pomp') { const q = ball(H, hair, .075, 0, .125, .055); q.scale.set(1, .9, 1.35); ball(H, hair, .06, 0, .1, -.02); }      // tall swept-up quiff
+    else if (S.hs === 'spiky') { for (const a of [-2, -1.5, -1, -.5, 0, .5, 1, 1.5, 2]) cone(H, hair, .042, .13, Math.sin(a) * .13, .03 + Math.cos(a) * .15, -.02).rotation.z = -a; for (const a of [-1, 0, 1]) cone(H, hair, .042, .12, Math.sin(a) * .09, .06 + Math.cos(a) * .08, -.13).rotation.set(-1.1, 0, -a * .6); }      // a ring of spikes
     else if (S.hs === 'curly') { for (const [x, y, z] of [[-.09, .04, -.05], [.09, .04, -.05], [0, .06, -.1], [-.07, -.04, -.09], [.07, -.04, -.09], [0, -.06, -.1]]) ball(H, hair, .055, x, y, z); }
     else if (S.hs === 'bob') { hb(H, hair, .228, .17, .1, 0, -.03, -.06); hb(H, hair, .03, .15, .12, -.105, -.03, .0); hb(H, hair, .03, .15, .12, .105, -.03, .0); }
     else if (S.hs === 'bun') ball(H, hair, .052, 0, .11, -.075);
