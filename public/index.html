@@ -1779,7 +1779,7 @@ function heroArms() {                           // which weapon your character i
   }
   rig.gun.visible = !(on && inHand); if (rig.hand) rig.hand.visible = on && inHand; if (rig.mw) rig.mw.visible = !(on && inHand);
 }
-const tmpE = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), XAX = new THREE.Vector3(1, 0, 0);
+const tmpE = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), XAX = new THREE.Vector3(1, 0, 0); const YAX = new THREE.Vector3(0, 1, 0), ZAX = new THREE.Vector3(0, 0, 1);
 function applyPose(rig, p) {                  // p: joint angles and body offsets; anything missing is at rest
   const g = k => p[k] || 0, b = rig.root, u = rig.up, c = g('cen');
   b.rotation.set(g('rx'), g('ry'), g('rz'));
@@ -1788,7 +1788,7 @@ function applyPose(rig, p) {                  // p: joint angles and body offset
   rig.head.rotation.set(g('hx'), g('hy'), g('hz'));
   rig.shL.rotation.set(g('sLx'), 0, g('sLz')); rig.elL.rotation.x = g('eL'); rig.shR.rotation.set(g('sRx'), 0, g('sRz')); rig.elR.rotation.x = g('eR');
   rig.hpL.rotation.set(g('hLx'), 0, g('hLz')); rig.knL.rotation.x = g('kL'); rig.hpR.rotation.set(g('hRx'), 0, g('hRz')); rig.knR.rotation.x = g('kR');
-  if (rig.gun) { rig.gun.quaternion.copy(rig.gq); if (p.gs) rig.gun.quaternion.multiply(tmpQ.setFromAxisAngle(XAX, p.gs)); }
+  if (rig.gun) { rig.gun.quaternion.copy(rig.gq); if (p.gs) rig.gun.quaternion.multiply(tmpQ.setFromAxisAngle(XAX, p.gs)); if (p.gt) rig.gun.quaternion.multiply(tmpQ.setFromAxisAngle(YAX, p.gt)); if (p.gr) rig.gun.quaternion.multiply(tmpQ.setFromAxisAngle(ZAX, p.gr)); }
 }
 const idlePose = t => ({ uy: Math.sin(t * .4) * .05, ux: Math.sin(t * 1.6 + 1) * .012, uz: -Math.sin(t * .45) * .02, rz: Math.sin(t * .45) * .012, hy: Math.sin(t * .33) * .4, hx: Math.sin(t * .21) * .06, sLx: Math.sin(t * 1.6) * .015 });
 const CRO = { y: -.18, hLx: -.7, kL: 1.3, hRx: -.7, kR: 1.3 }, TAU = 6.2832, mixP = (...o) => Object.assign({}, ...o);
@@ -5373,11 +5373,15 @@ function updatePlayer(dt) {
 }
 // ----- third-person view: the camera sits behind your right shoulder and your own character is drawn, moving the way other players see it -----
 const tp = { on: false, ph: 0, kick: 0, d: 3, side: .5, up: 1.62, mv: 0, run: 0, land: 0, wasAir: false, yaw: 0, turn: 0, cur: {}, snap: true };
-const HOLD = { sRx: -1.22, eR: -.22, sLx: -1.28, sLz: -.3, eL: -.42 }, MHOLD = { sRx: -.9, eR: -1.1, sLx: -.7, eL: -1.3 };
-const RELK = [[0, HOLD],                          // magazine change: gun in and tilted, old magazine out, hand to the pouch, new one up, seated, charged
-  [.12, { sRx: -1, eR: -.75, sRz: -.1, sLx: -1.1, sLz: -.3, eL: -.9, gs: .35, hx: .22 }], [.3, { sRx: -1, eR: -.75, sRz: -.1, sLx: -.25, sLz: .1, eL: -1.2, gs: .35, hx: .3 }],
-  [.5, { sRx: -1, eR: -.75, sRz: -.1, sLx: -.2, sLz: .15, eL: -1.5, gs: .35, hx: .3 }], [.7, { sRx: -1, eR: -.75, sRz: -.1, sLx: -1.05, sLz: -.3, eL: -1, gs: .35, hx: .22 }],
-  [.8, { sRx: -1.02, eR: -.7, sRz: -.1, sLx: -1.15, sLz: -.3, eL: -.8, gs: .3, hx: .2 }], [.9, { sRx: -1.1, eR: -.5, sLx: -1.3, sLz: -.35, eL: -.6, gs: .1 }], [1, HOLD]];
+const HOLD = { sRx: -.97, sRz: -.285, eR: -.589, sLx: -.932, sLz: -.447, eL: -.05, gs: -.711, gt: .496, gr: -2.328 },      // arm angles solved against the real model: gun level at the shoulder, support hand on the hand guard
+  ADSP = { sRx: -1.201, sRz: -.104, eR: -.481, sLx: -1.113, sLz: -.382, eL: -.03, gs: -.854, gt: .651, gr: -2.141 },             // aiming: gun up to the eye, in to the centre line
+  PISP = { sRx: -1.087, sRz: -.12, eR: -.02, sLx: -.425, sLz: -.701, eL: -.777, gs: -.874, gt: .047, gr: -2.091 },             // handguns: both hands on the grip, arms out
+  CARRY = { sRx: -.255, sRz: -.513, eR: -1.122, sLx: .274, sLz: -.698, eL: -.896, gs: -.189, gt: .228, gr: -2.154 },           // sprinting: gun across the chest, muzzle down and left
+  RTILT = { sRx: -.7, sRz: -.332, eR: -.92, gs: -.547, gt: .152, gr: -2.328 }, MHOLD = { sRx: -.9, eR: -1.1, sLx: -.7, eL: -1.3 };
+const RELK = [[0, HOLD],                          // magazine change: gun tips up and in, old magazine out, hand to the pouch, new one up, seated, charged
+  [.12, Object.assign({ sLx: .061, sLz: -.702, eL: -.969, hx: .22 }, RTILT)], [.3, Object.assign({ sLx: .531, sLz: .065, eL: -.79, hx: .3 }, RTILT)],
+  [.5, Object.assign({ sLx: .5, sLz: .05, eL: -.95, hx: .3 }, RTILT)], [.7, Object.assign({ sLx: .061, sLz: -.702, eL: -.969, hx: .25 }, RTILT)],
+  [.8, Object.assign({ sLx: .08, sLz: -.68, eL: -.85, hx: .2 }, RTILT)], [.9, Object.assign({}, HOLD, { sLx: -.6, eL: -.5 })], [1, HOLD]];
 const MELK = [[0, MHOLD], [.22, { sRx: -2.5, sRz: -.45, eR: -1.2, uy: .55, ux: -.08, sLx: -.7, eL: -1.1 }], [.5, { sRx: -1.05, sRz: .5, eR: -.12, uy: -.7, ux: .3, sLx: -.5, eL: -1.2, y: -.05 }],
   [.72, { sRx: -.6, sRz: .6, eR: -.5, uy: -.8, ux: .25, sLx: -.5, eL: -1.2 }], [1, MHOLD]];      // wind up, cut across, follow through, recover
 function heroPose(dt, ads) {                      // the pose your character should be in right now, built in layers: legs, then whatever the arms are doing
@@ -5389,16 +5393,16 @@ function heroPose(dt, ads) {                      // the pose your character sho
   tp.ph += spd * dt * 2.3 * back; tp.mv += (mv - tp.mv) * Math.min(1, dt * 9); tp.run += ((P.sprinting ? 1 : 0) - tp.run) * Math.min(1, dt * 7);
   tp.airT = P.air ? (tp.airT || 0) + dt : 0; if (tp.wasAir > .22 && !P.air) tp.land = 1; tp.wasAir = tp.airT; tp.land = Math.max(0, tp.land - dt * 3.2);      // only a real jump or drop gets a landing, not a stair
   { let dy = P.yaw - tp.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); tp.yaw = P.yaw; tp.turn += (clamp(dy / Math.max(dt, .004), -6, 6) - tp.turn) * Math.min(1, dt * 8); }
-  if (P.slideT > 0) return mixP(SLIDEP, { sRx: -1.2, eR: -.4, sLx: .3, sLz: .8, eL: -.3, uy: -.12 });      // one hand trails on the ground, the gun stays pointed ahead
+  if (P.slideT > 0) return mixP(SLIDEP, { sRx: -1.25, sRz: -.285, eR: -.589, gs: HOLD.gs, gt: HOLD.gt, gr: HOLD.gr, sLx: .3, sLz: .8, eL: -.3, uy: -.12 });      // one hand trails on the ground, the gun stays pointed ahead
   const s = Math.sin(tp.ph), c = Math.cos(tp.ph), m = tp.mv, run = tp.run, ck = crouchK, side = Math.abs(str) > .5 && Math.abs(fwd) < .4 ? 1 : 0, pose = {};
   // ----- legs and hips -----
   if (P.air) {                                    // tucked on the way up, reaching for the ground on the way down
     const up = clamp(((P.vy || 0) + 3) / 7, 0, 1), L = (a, b) => b + (a - b) * up;
     pose.hLx = L(-.8, -.4); pose.kL = L(1.25, .5); pose.hRx = L(-.3, .12); pose.kR = L(.95, .4); pose.ux = L(.1, -.06); pose.rz = -str * .05;
   } else {
-    const A = (.46 + run * .5) * m * (P.crouch ? .75 : 1) * (back < 0 ? .7 : 1) * (side ? .55 : 1), sw = x => Math.max(0, x), idle = 1 - m;
-    pose.hLx = s * A - (.04 + run * .1) * m - .06 * idle; pose.kL = .1 * m + sw(c) * A * 1.6 + sw(-c) * A * .22 + .1 * idle;       // the knee folds as the leg swings through and gives a little as it takes weight
-    pose.hRx = -s * A - (.04 + run * .1) * m + .05 * idle; pose.kR = .1 * m + sw(-c) * A * 1.6 + sw(c) * A * .22 + .06 * idle;
+    const A = (.44 + run * .3) * m * (P.crouch ? .75 : 1) * (back < 0 ? .7 : 1) * (side ? .55 : 1), sw = x => Math.max(0, x), idle = 1 - m;
+    pose.hLx = s * A - (.04 + run * .1) * m - .06 * idle; pose.kL = .1 * m + sw(c) * A * (1.6 + run * .5) + sw(-c) * A * .22 + .1 * idle;       // the knee folds as the leg swings through and gives a little as it takes weight
+    pose.hRx = -s * A - (.04 + run * .1) * m + .05 * idle; pose.kR = .1 * m + sw(-c) * A * (1.6 + run * .5) + sw(c) * A * .22 + .06 * idle;
     pose.hLz = -str * m * (.08 + .08 * s); pose.hRz = -str * m * (.08 - .08 * s);                                                 // side-stepping opens the legs
     pose.y = -(.5 - .5 * Math.cos(2 * tp.ph)) * (.03 + run * .035) * m + Math.sin(T * 1.6) * .004 * idle;                         // the body rises over each planted foot
     pose.rz = s * .03 * m - str * .045 * m - clamp(tp.turn, -4, 4) * .012 + Math.sin(T * .45) * .012 * idle;                      // hip sway, lean into a strafe and into a turn
@@ -5418,19 +5422,20 @@ function heroPose(dt, ads) {                      // the pose your character sho
     Object.assign(pose, MHOLD); add(pose, 'ux', -pt * .5); pose.uy = twist; pose.hx = pt * .3; pose.sRx += s * .12 * m; pose.sLx -= s * .12 * m;
   } else if (reloading) {
     let a;
-    if (w.shells) { const q = ((T - relStart - relLead) / Math.max(.1, relPer)) % 1, f = Math.sin(clamp(q, 0, 1) * TAU); a = { sRx: -1, eR: -.75, sRz: -.1, gs: .3, hx: .25, sLx: -.7 - .4 * f, sLz: -.1, eL: -1.2 + .25 * f }; }      // one shell at a time
+    if (w.shells) { const q = ((T - relStart - relLead) / Math.max(.1, relPer)) % 1, f = Math.sin(clamp(q, 0, 1) * TAU); a = Object.assign({ hx: .25, sLx: .061 + .35 * f, sLz: -.7 + .3 * f, eL: -.97 + .15 * f }, RTILT); }      // one shell at a time
     else a = poseAt({ k: RELK }, clamp(1 - (reloadEnd - T) / Math.max(.1, reloadDur), 0, 1));
     Object.assign(pose, a, { ux: (pose.ux || 0) + (P.crouch ? .05 : .05) - pt * .6 }); pose.uy = twist * .4; pose.hx = (a.hx || 0) + pt * .1;
   } else if (P.sprinting && !ads && tp.kick <= 0 && !P.air) {      // sprinting: the gun comes down across the chest and the arms pump
-    Object.assign(pose, { sRx: -.55 + s * .22, eR: -1.45, sRz: .1, sLx: -.75 - s * .22, sLz: -.3, eL: -1.4, hx: -.12 }); pose.uy = twist; pose.hy = -twist * .6;
+    Object.assign(pose, CARRY, { hx: -.12 }); pose.sRx += s * .1; pose.sLx += s * .1; pose.uy = twist * 1.3; pose.hy = -twist * .8;
   } else {                                        // gun up: the whole upper body tips with your view, so the barrel lines up with the crosshair
-    Object.assign(pose, HOLD); pose.sRx -= tp.kick * .06; pose.eR -= tp.kick * .2;
-    if (w && (w.kind === 'pistol' || w.kind === 'mpistol' || w.kind === 'magnum')) { pose.sLx = -1.2; pose.sLz = -.48; pose.eL = -.8; }      // handguns: the support hand wraps the grip instead of reaching for a fore-end
-    pose.ux = (pose.ux || 0) * .35 + .05 + ck * .16 - pt * .92 - tp.kick * .03; pose.hx = .06 + pt * .12; pose.uy = twist * .3; pose.hy = -twist * .3 - aimK * .08; pose.hz = aimK * .1;      // cheek to the stock when you aim
+    const hg = w && (w.kind === 'pistol' || w.kind === 'mpistol' || w.kind === 'magnum'), A0 = hg ? PISP : HOLD, ak = hg ? 0 : aimK;
+    for (const k in A0) pose[k] = A0[k] + ((ADSP[k] || 0) - A0[k]) * ak;
+    pose.sRx -= tp.kick * .06; pose.eR -= tp.kick * .2;
+    pose.ux = (pose.ux || 0) * .35 + .05 + ck * .16 - pt * .92 - tp.kick * .03; pose.hx = .06 + pt * .12; pose.uy = twist * .3; pose.hy = -twist * .3 - aimK * .1; pose.hz = aimK * .12; pose.hx += aimK * .08;      // cheek down to the stock when you aim
   }
   if (P.doorT > 0) {                               // opening or closing a door: the free hand goes out, pushes, and comes back
     P.doorT -= dt; const k = Math.sin(Math.PI * clamp(1 - P.doorT / .55, 0, 1)), q = 1 - k;
-    Object.assign(pose, { sLx: (pose.sLx || 0) * q - 1.6 * k, sLz: (pose.sLz || 0) * q + .12 * k, eL: (pose.eL || 0) * q - .1 * k, uy: (pose.uy || 0) - .3 * k, ux: (pose.ux || 0) + .1 * k });
+    Object.assign(pose, { sLx: (pose.sLx || 0) * q - 1.02 * k, sLz: (pose.sLz || 0) * q - .04 * k, eL: (pose.eL || 0) * q, uy: (pose.uy || 0) - .25 * k, ux: (pose.ux || 0) + .08 * k });
   }
   return pose;
 }
