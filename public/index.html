@@ -2296,7 +2296,8 @@ function buildChar(hero, heroUp, heroHead, S, wr, main) {
     if (right) {
       const gun = new THREE.Group(); gun.position.set(G.x - el[0], G.y - el[1], G.z - el[2]); gun.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), d); ep.add(gun);
       smgMesh(gun, gunMetal, black); rig.gun = gun; rig.gm = [gunMetal, black];
-      { const hd = new THREE.Group(); hd.position.set(ha[0] - el[0], ha[1] - el[1], ha[2] - el[2]); hd.rotation.x = .9; hd.visible = false; ep.add(hd); rig.hand = hd; }      // the melee weapon goes here while you swing it rig.gq = gun.quaternion.clone();
+      { const hd = new THREE.Group(); hd.position.set(ha[0] - el[0], ha[1] - el[1], ha[2] - el[2]); hd.rotation.x = .9; hd.visible = false; ep.add(hd); rig.hand = hd; }      // the melee weapon goes here while you swing it
+      rig.gq = gun.quaternion.clone();
     }
   });
   // ----- melee weapon carried on the body -----
