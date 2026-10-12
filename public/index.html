@@ -3286,8 +3286,8 @@ function updateHud(dt) {
   if (hudCache.hpw !== hpw) { hudCache.hpw = hpw; $('hpFill').style.width = hpw; $('hpBar').classList.toggle('low', P.hp <= 30); canvas.classList.toggle('hurt', P.hp <= 35); }
   const stw = Math.round(P.stam * 100) + '%'; if (hudCache.stw !== stw) { hudCache.stw = stw; $('stFill').style.width = stw; }
   setTxt('tip', w.melee ? '' : reloading ? 'Reloading…' : (w.mag === 0 && w.res <= 0 ? 'Out of ammo' : (w.mag <= Math.ceil(w.size * .25) && w.res > 0 ? (isTouch ? 'Low ammo — tap Reload' : 'Low ammo — press R') : '')));
-  crossGap += (9 + P.moving * 6 - crouchK * 3 - crossGap) * Math.min(1, dt * 8); $('cross').style.setProperty('--gap', crossGap.toFixed(1) + 'px');
-  const co = aimK > .5 || P.sprinting ? '0' : '1'; if (hudCache.co !== co) { hudCache.co = co; $('cross').style.opacity = co; }
+  crossGap += (9 + P.moving * 6 - crouchK * 3 - crossGap) * Math.min(1, dt * 8); $('cross').style.setProperty('--gap', Math.max(2.5, crossGap * (1 - aimK * .65)).toFixed(1) + 'px');      // aiming pulls the crosshair in tight
+  const co = P.sprinting && aimK < .3 ? '0' : '1';      // the crosshair stays up while you aim if (hudCache.co !== co) { hudCache.co = co; $('cross').style.opacity = co; }
   const crs = P.crouch ? '1' : ''; if (hudCache.cr !== crs) { hudCache.cr = crs; $('tCrouch').classList.toggle('on', P.crouch); }
   if (splatA > 0 || hudCache.sp !== '0') { splatA = Math.max(0, splatA - dt * .32); const v = splatA.toFixed(2); if (hudCache.sp !== v) { hudCache.sp = v; $('splat').style.opacity = v; } if (splatA <= 0) hudCache.sp = '0'; }
   dirT = Math.max(0, dirT - dt);
@@ -4132,7 +4132,7 @@ function getStock() {
   const take = (arr, n) => { const src = arr.slice(), out = []; while (out.length < n && src.length) out.push(src.splice(Math.floor(r() * src.length), 1)[0]); return out; };
   const paid = list => list.map((_, i) => i).filter(i => list[i].price > 0);
   const pinned = BUNDLES.map((b, i) => b.pin ? i : -1).filter(i => i >= 0);
-  stock = { hour, bundles: pinned.slice(0, 10).concat(take(BUNDLES.map((_, i) => i).filter(i => !BUNDLES[i].pin), Math.max(0, 10 - pinned.length))),
+  stock = { hour, bundles: take(BUNDLES.map((_, i) => i), 10),      // ten bundles a hour from all of them, like every other section
     skins: take(paid(SKINS), 10).sort((x, y) => SKINS[x].price - SKINS[y].price), wraps: take(paid(WRAPS), 10).sort((x, y) => WRAPS[x].price - WRAPS[y].price),
     melees: take(paid(MELEE), 10).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 10).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 10).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 10).sort((x, y) => REVIVES[x].price - REVIVES[y].price) , auras: take(paid(AURAS), 10).sort((x, y) => AURAS[x].price - AURAS[y].price) };
   return stock;
