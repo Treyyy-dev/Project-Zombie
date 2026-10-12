@@ -53,24 +53,6 @@ Without a database, player names are forgotten whenever the server restarts and 
 4. On Render open your service, go to **Environment**, and add both as variables with exactly those names.
 5. Save. Render restarts the server and starts using the database.
 
-## Reward codes
-
-Players enter codes in **Settings > Info > Code**. The codes live in `codes.json`. Edit that file on GitHub to add, change or remove them; Render picks the change up by itself.
-
-```
-{
-  "WELCOME":  { "coins": 1000 },
-  "STRAWHAT": { "skin": "Luffy" },
-  "PIRATES":  { "bundle": "Grand Line Series" },
-  "LEVELUP":  { "xp": 300 },
-  "LAUNCH":   { "coins": 2000, "max": 100, "until": "2026-12-31" }
-}
-```
-
-- `coins`, `xp` (battle pass XP, 100 is one tier), `skin` (a character's exact name) and `bundle` (a bundle's exact name) can be combined in one code.
-- `max` limits how many players in total can use it. `until` is the last day it works.
-- Each player can use a code once. Without a database, the server forgets who used what when it restarts.
-
 ## Updating the game
 
 Replace `public/index.html` with the new version and push to GitHub. Render redeploys by itself.

@@ -290,7 +290,7 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
 .lb-right{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 #setFull{position:absolute;inset:0;display:flex;flex-direction:column;z-index:3;background:rgba(8,17,19,.97)}
 .set-body{flex:1;min-height:0;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
-.acct{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}.acct b{font-weight:600;font-size:17px;overflow-wrap:anywhere}#gBtn{min-height:0;color-scheme:light}#codeIn{flex:1;min-width:110px;max-width:220px;background:#050a0b;border:1px solid var(--line);color:var(--bone);font:inherit;font-size:15px;padding:7px 9px;border-radius:0;text-transform:uppercase;-webkit-user-select:text;user-select:text}
+.acct{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}.acct b{font-weight:600;font-size:17px;overflow-wrap:anywhere}#gBtn{min-height:0;color-scheme:light}
 .set-pane{display:flex;flex-direction:column;gap:14px;max-width:680px}
 .set-row{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:8px 16px;align-items:center}
 .set-row > span{font-size:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
@@ -574,7 +574,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <p class="lbl">You</p>
           <div class="set-row"><span>Player name</span><div class="acct"><b id="pubName"></b><button class="ghost" id="setName" type="button">Change name</button></div></div>
           <div class="set-row"><span>Account</span><div class="acct"><span class="sub" id="acctTxt" style="white-space:normal"></span><div id="gBtn"></div><button class="ghost" id="acctOut" type="button" hidden>Sign out</button></div></div>
-          <div class="set-row"><span>Code</span><form class="acct" id="codeForm" autocomplete="off"><input id="codeIn" type="text" maxlength="32" placeholder="Enter a code" autocapitalize="characters" spellcheck="false" enterkeyhint="done"><button class="go small" type="submit">Redeem</button><span class="sub" id="codeTxt" style="white-space:normal;flex-basis:100%"></span></form></div>
           <p class="lbl">Voice chat</p>
           <div class="set-row"><span>Microphone</span><button class="ghost" id="setMic" type="button" aria-pressed="false">Off</button></div>
           <div class="set-row"><span>Hear other players</span><button class="ghost" id="setHear" type="button" aria-pressed="true">On</button></div>
@@ -2775,7 +2774,7 @@ try { const l = JSON.parse(localStorage.getItem('deadshift.loadout') || 'null');
 let meleeT = 0, meleeDur = .3, meleeHit = true, meleeNext = 0, meleeK = 0, meleeSide = 1, reloadDur = 1, kickV = 0, relN = 0, relDone = 0, relStart = 0, relLead = .5, relPer = .42;
 const inv = { med: 0 }; let nearPick = null, nearUse = null, nearDoor = null, cutT = 0, exOpen = false, kickT = 0, kickHit = true, miniT = 0, engine = null;
 const lobbyEl = $('lobby'), ZCAP = [10, 14, 18, 22, 24];
-const save = { credits: 750, skins: [0], wraps: [0], melees: [0, 1, 2, 3], intros: [0, 1], skin: 0, wrap: 0, intro: 0 };
+const save = { credits: 600, skins: [0], wraps: [0], melees: [0, 1, 2, 3], intros: [0, 1], skin: 0, wrap: 0, intro: 0 };
 try { const v = JSON.parse(localStorage.getItem('deadshift.save') || 'null'); if (v && Array.isArray(v.skins) && Array.isArray(v.wraps)) Object.assign(save, v); } catch (e) {}
 if (save.v !== 2) {                            // older saves: pattern skins became characters, so refund them
   const old = [0, 150, 150, 200, 250, 300, 300, 400, 450, 450, 500, 600, 750, 800, 900, 1000, 1200, 1500, 2500];
@@ -2799,6 +2798,7 @@ save.rev = clamp(save.rev | 0, 0, REVIVES.length - 1); if (!save.revs.includes(s
 if (!Array.isArray(save.auras)) save.auras = []; if (!save.auras.includes(0)) save.auras.push(0);
 save.aura = clamp(save.aura | 0, 0, AURAS.length - 1); if (!save.auras.includes(save.aura)) save.aura = 0;
 save.skin = clamp(save.skin | 0, 0, SKINS.length - 1); save.wrap = clamp(save.wrap | 0, 0, WRAPS.length - 1); save.credits = Math.max(0, Math.floor(+save.credits || 0));      // plain number, so very large balances survive a reload
+if ((save.eco | 0) < 1) { save.eco = 1; save.credits = 600; delete save.codes; try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} }      // one-time coin reset: every player goes back to 600
 if (!save.bp || typeof save.bp !== 'object') save.bp = {}; save.bp.xp = Math.max(0, save.bp.xp | 0); save.bp.paid = save.bp.paid ? 1 : 0;
 for (const k of ['cf', 'cp', 'm']) if (!Array.isArray(save.bp[k])) save.bp[k] = []; if (!save.bp.p || typeof save.bp.p !== 'object') save.bp.p = {};
 const persist = () => { try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} if (typeof cloudPush === 'function') cloudPush(); };
@@ -4449,27 +4449,6 @@ if (acct && window.PZ_SERVER) fetch('/save?uid=' + encodeURIComponent(acct.uid) 
     if (state === 'title' || state === 'lobby' || state === 'name') location.reload();
   } else { cloudState = 'saved'; if (!c || !c.t) cloudPush(); }
 }).catch(() => {});
-// ----- reward codes: checked by the game's own server, one use per player -----
-let codeBusy = false;
-$('codeForm').addEventListener('submit', e => {
-  e.preventDefault(); const out = $('codeTxt'), code = $('codeIn').value.trim().toUpperCase(); if (!code || codeBusy) return;
-  if (!window.PZ_SERVER || !window.PZ_UID) { out.textContent = 'Codes work on the game\u2019s own website, not inside the Claude app.'; return; }
-  if (!Array.isArray(save.codes)) save.codes = [];
-  if (save.codes.includes(code)) { out.textContent = 'You have already used that code.'; return; }
-  codeBusy = true; out.textContent = 'Checking…';
-  fetch('/redeem', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ uid: window.PZ_UID, code }) }).then(r => r.json()).then(a => {
-    codeBusy = false;
-    if (!a || !a.ok) { out.textContent = a && a.why === 'used' ? 'You have already used that code.' : a && a.why === 'expired' ? 'That code has expired.' : a && a.why === 'gone' ? 'That code has been used up.' : a && a.why === 'down' ? 'Could not check the code. Try again in a moment.' : 'That code is not valid.'; if (a && a.why === 'used') { save.codes.push(code); persist(); } return; }
-    const r = a.reward || {}, got = [], give = (key, list, i) => { if (i >= 0 && !save[key].includes(i)) { save[key].push(i); return true; } return false; };
-    if (r.coins > 0) { save.credits += Math.floor(r.coins); got.push(cr(Math.floor(r.coins)) + ' coins'); }
-    if (r.xp > 0) { save.bp.xp += Math.floor(r.xp); got.push(Math.floor(r.xp) + ' battle pass XP'); }
-    if (r.skin) { const i = SKINS.findIndex(q => q.name.toLowerCase() === String(r.skin).toLowerCase()); if (i >= 0) { give('skins', SKINS, i); got.push('the ' + SKINS[i].name + ' character'); } }
-    if (r.bundle) { const b = BUNDLES.find(q => q.name.toLowerCase() === String(r.bundle).toLowerCase()); if (b) { for (const i of b.skins) give('skins', SKINS, i); give('wraps', WRAPS, b.wrap); give('melees', MELEE, b.melee); give('intros', INTROS, b.intro); if (b.fin >= 0) give('fins', FINISHERS, b.fin); if (b.rev >= 0) give('revs', REVIVES, b.rev); if (bAura(b) > 0) give('auras', AURAS, bAura(b)); got.push('the ' + b.name + ' bundle'); } }
-    save.codes.push(code); persist(); sfx.pickup(); $('codeIn').value = ''; $('lbCred').textContent = cr(save.credits); bpBadge(); renderLoadout();
-    if (r.aura) { const i = AURAS.findIndex(q => q.name.toLowerCase() === String(r.aura).toLowerCase()); if (i > 0) { give('auras', AURAS, i); got.push('the ' + AURAS[i].name + ' aura'); } }
-    out.textContent = got.length ? 'Code accepted: you got ' + got.join(' and ') + '.' : 'Code accepted.';
-  }).catch(() => { codeBusy = false; out.textContent = 'Could not check the code. Try again in a moment.'; });
-});
 $('acctOut').addEventListener('click', () => { try { localStorage.removeItem('deadshift.acct'); } catch (e) {} location.reload(); });
 /* ---------- own-server build (GitHub + Render): the same room calls, carried over a WebSocket to server.js ---------- */
 if (window.PZ_SERVER && !window.claude) (() => {

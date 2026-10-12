@@ -54,19 +54,6 @@ const server = http.createServer((req, res) => {
   }
   if (p === '/find') { (async () => { try { const name = cleanName(new URL(req.url, 'http://x').searchParams.get('name')), uid = name ? await db('GET', 'pz:name:' + name.toLowerCase()) : null;
       json(res, 200, uid ? { uid, name: (await db('GET', 'pz:uname:' + uid)) || name } : {}); } catch (e) { json(res, 200, {}); } })(); return; }
-  if (p === '/redeem' && req.method === 'POST') {   // reward codes: edit codes.json to add or remove them. Each player can use a code once.
-    readBody(req, 2000, async j => { try {
-      const uid = cleanUid(j.uid), code = String(j.code || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 32); let codes = {};
-      try { const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'codes.json'), 'utf8')); for (const k in raw) codes[k.toUpperCase()] = raw[k]; } catch (e) {}
-      const c = codes[code];
-      if (!uid || !code || !c) return json(res, 200, { ok: false, why: 'bad' });
-      if (c.until && Date.now() > Date.parse(c.until)) return json(res, 200, { ok: false, why: 'expired' });
-      if ((await db('SET', 'pz:red:' + code + ':' + uid, '1', 'NX')) === null) return json(res, 200, { ok: false, why: 'used' });
-      if (c.max && (await db('INCR', 'pz:redn:' + code)) > c.max) return json(res, 200, { ok: false, why: 'gone' });
-      json(res, 200, { ok: true, code, reward: { coins: +c.coins || 0, xp: +c.xp || 0, skin: c.skin ? String(c.skin) : '', bundle: c.bundle ? String(c.bundle) : '' } });
-    } catch (e) { json(res, 200, { ok: false, why: 'down' }); } });
-    return;
-  }
   if (p === '/save') {                              // progress for signed-in players: it follows their Google account to any device
     const q = new URL(req.url, 'http://x').searchParams;
     if (req.method === 'GET') { (async () => { try { const uid = cleanUid(q.get('uid')); if (uid[0] !== 'g' || !checkSess(uid, q.get('sess'))) return json(res, 401, {}); const v = await db('GET', 'pz:save:' + uid); json(res, 200, v ? JSON.parse(v) : {}); } catch (e) { json(res, 503, {}); } })(); return; }
