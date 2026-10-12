@@ -607,7 +607,6 @@ button:focus-visible{outline:2px solid var(--bone);outline-offset:3px}
           <section><h3>Intro / outro</h3><p>Use any of these as your match intro, your end-screen outro, or both.</p><div class="sh-grid" id="shIntros"></div></section>
           <section><h3>Finishers</h3><p>Knock an enemy player down, walk up and finish them with a five-second move. Nothing can hurt you while it plays.</p><div class="sh-grid" id="shFins"></div></section>
           <section><h3>Revives</h3><p>How you bring a teammate back. It plays for the ten seconds a revive takes.</p><div class="sh-grid" id="shRevs"></div></section>
-          <section><h3>Auras</h3><p>A glowing outline around your character. Other players see it in the lobby and in matches.</p><div class="sh-grid" id="shAuras"></div></section>
         </div>
         <div class="sh-view">
           <div class="sh-buy"><u class="rar" id="shRar"></u><b id="shName"></b><span id="shDesc"></span><button class="go small" id="btnBuy" type="button">Buy</button></div>
@@ -1774,7 +1773,6 @@ function heroArms() {                           // which weapon your character i
   if (on && rig.gm && w && !w.melee && rig.gk !== w.kind) {
     rig.gk = w.kind; while (rig.gun.children.length) rig.gun.remove(rig.gun.children[0]);
     try { worldGun(rig.gun, w.kind, rig.gm[0], rig.gm[1]); } catch (e) { smgMesh(rig.gun, rig.gm[0], rig.gm[1]); }
-    if (save.aura > 0) setAura(hero, save.aura);
   }
   rig.gun.visible = !(on && inHand); if (rig.hand) rig.hand.visible = on && inHand; if (rig.mw) rig.mw.visible = !(on && inHand);
 }
@@ -2089,7 +2087,7 @@ const REVIVES = [
     BUNDLES.push({ name, skins: sk.map(sI).filter(i => i >= 0), wrap: Math.max(0, wI(w)), melee: Math.max(0, mI(m)), intro: Math.max(0, aI(a)), fin: fI(f), rev: rI(r) });
   BUNDLES.push({ name: 'Hidden Leaf Series', pin: 1, skins: ['Naruto', 'Sasuke', 'Pain'].map(sI), wrap: wI('Leaf Green'), melee: mI('Kunai'), intro: Math.max(0, aI('Backflip')), fin: fI('Moon Shot'), rev: rI('Whisper') });
   BUNDLES.push({ name: 'Web Slinger Series', pin: 1, skins: ['Spider-Man', 'Miles Morales', 'Gwen Stacy'].map(sI), wrap: wI('Web Red'), melee: mI('Web Baton'), intro: Math.max(0, aI('Hero Landing')), fin: fI('Front Kick'), rev: rI('Slap Awake') });
-  BUNDLES.push({ name: 'Saiyan Series', pin: 1, skins: ['Goku', 'Vegeta', 'Trunks'].map(sI), wrap: wI('Kame Orange'), melee: mI('Future Sword'), intro: Math.max(0, aI('Flex')), fin: fI('Haymaker'), rev: rI('Chest Pump'), aura: 'Super' });
+  BUNDLES.push({ name: 'Saiyan Series', pin: 1, skins: ['Goku', 'Vegeta', 'Trunks'].map(sI), wrap: wI('Kame Orange'), melee: mI('Future Sword'), intro: Math.max(0, aI('Flex')), fin: fI('Haymaker'), rev: rI('Chest Pump') });
   BUNDLES.push({ name: 'Smith House Series', pin: 1, skins: ['Mr. Poopybutthole', 'Summer', 'Jerry'].map(sI), wrap: wI('Smith Yellow'), melee: mI('Ooh-Wee Baton'), intro: Math.max(0, aI('Big Wave')), fin: fI('Haymaker'), rev: rI('Pep Talk') });
   BUNDLES.push({ name: 'Elmore Series', pin: 1, skins: ['Gumball', 'Darwin', 'Anais'].map(sI), wrap: wI('Elmore Blue'), melee: mI('Lunch Tray'), intro: Math.max(0, aI('Cartwheel')), fin: fI('Moon Shot'), rev: rI('Chest Pump') });
   BUNDLES.push({ name: 'Portal Series', pin: 1, skins: ['Rick', 'Morty', 'Space Beth'].map(sI), wrap: wI('Portal Green'), melee: mI('Plumbus'), intro: Math.max(0, aI('Shrug')), fin: fI('Axe Handle'), rev: rI('Slap Awake') });
@@ -2116,71 +2114,7 @@ const BP_MISSIONS = [['zk', 500, 600, 'Kill 500 zombies'], ['hs', 100, 500, 'Get
   ['melee', 100, 400, 'Kill 100 zombies with your melee weapon'], ['time', 7200, 500, 'Stay alive for 2 hours in total'], ['slide', 300, 300, 'Slide 300 times'], ['pick', 80, 300, 'Pick up 80 guns']];
 const RAR = [['Common', '#9aa3a3'], ['Uncommon', '#5fbf6a'], ['Rare', '#4f9be8'], ['Epic', '#b06be0'], ['Legendary', '#f0b43c']];
 const rarity = it => it.bp ? (it.bp === 'p' ? 4 : 3) : it.price <= 0 ? 0 : it.price <= 250 ? 1 : it.price <= 600 ? 2 : it.price <= 1200 ? 3 : 4;
-const AURAS = [                               // a glow around your character: k is how the sparks move
-  { name: 'None', price: 0 },
-  { name: 'Ember', price: 400, c: 0xff6a1e, c2: 0xffd24a, k: 'rise' },
-  { name: 'Frost', price: 400, c: 0x6fd6ff, c2: 0xe8fbff, k: 'fall' },
-  { name: 'Toxic', price: 500, c: 0x6dff3a, c2: 0xd8ff5a, k: 'rise' },
-  { name: 'Royal', price: 600, c: 0xa45cff, c2: 0xff8cf0, k: 'orbit' },
-  { name: 'Blood Moon', price: 800, c: 0xff1f2e, c2: 0xff7a4a, k: 'rise' },
-  { name: 'Ocean', price: 800, c: 0x1f7bff, c2: 0x5af0ff, k: 'orbit' },
-  { name: 'Sakura', price: 900, c: 0xff8ac4, c2: 0xffe0f0, k: 'fall' },
-  { name: 'Golden', price: 1200, c: 0xffc21f, c2: 0xfff2a8, k: 'orbit' },
-  { name: 'Storm', price: 1500, c: 0x9fd0ff, c2: 0xffffff, k: 'storm' },
-  { name: 'Shadow', price: 1500, c: 0x7a2cff, c2: 0x2a1040, k: 'storm' },
-  { name: 'Super', price: 2500, c: 0xffe23a, c2: 0xffffff, k: 'power' },
-  { name: 'Rainbow', price: 3000, c: 0xff3a6a, c2: 0x3affd0, k: 'rainbow' }
-];
-const auraMats = {}, auraGeo = {};
-function mkAura(A) {                            // floor glow and sparks; the outline itself is added to the character's own pieces by setAura
-  const key = AURAS.indexOf(A), few = cfg.perf || cfg.q <= 1, n = few ? 4 : A.k === 'power' ? 10 : 7;
-  const line = (w, op) => { const m = Basic({ color: A.c, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide, fog: false });
-    m.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normalize( normal ) * ' + w.toFixed(3) + ';'); };      // push every face out along its normal: the back faces show as a rim
-    m.customProgramCacheKey = () => 'auraLine' + w; return m; };
-  const M = auraMats[key] || (auraMats[key] = {
-    floor: Basic({ map: glowTex, color: A.c, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }),
-    o1: line(.022, .7), o2: line(.055, .28),
-    a: new THREE.SpriteMaterial({ map: glowTex, color: A.c, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }),
-    b: new THREE.SpriteMaterial({ map: glowTex, color: A.c2, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }) });
-  if (!auraGeo.floor) auraGeo.floor = new THREE.CircleGeometry(.9, 28);
-  const g = new THREE.Group(), u = { A, key, sparks: [], M, last: -1 };
-  const floor = new THREE.Mesh(auraGeo.floor, M.floor); floor.rotation.x = -Math.PI / 2; floor.position.y = .045; floor.renderOrder = 2; floor.frustumCulled = false; g.add(floor); u.floor = floor;
-  for (let k = 0; k < n; k++) { const sp = new THREE.Sprite(k % 2 ? M.b : M.a); sp.renderOrder = 3; g.add(sp); u.sparks.push(sp); }
-  g.userData.aura = u;
-  floor.onBeforeRender = () => { const t = performance.now() / 1000; if (t - u.last > .012) auraPose(g, t); };      // only animated while it is actually on screen
-  auraPose(g, 1.3);
-  return g;
-}
-function auraPose(g, t) {                       // where everything sits at time t: nothing is stored between frames
-  const u = g.userData.aura, A = u.A, k = A.k, n = u.sparks.length; u.last = t;
-  const pulse = .5 + .5 * Math.sin(t * (k === 'storm' || k === 'power' ? 9 : 2.6)), fl = k === 'storm' ? (Math.sin(t * 31) > -.2 ? 1 : .35) : 1;
-  u.floor.scale.setScalar(.9 + pulse * .18);
-  u.M.o1.opacity = (.5 + pulse * .35) * fl; u.M.o2.opacity = (.16 + pulse * (k === 'power' ? .3 : .18)) * fl;      // the outline breathes
-  if (k === 'rainbow') { const h = (t * .12) % 1; u.M.floor.color.setHSL(h, 1, .55); u.M.o1.color.setHSL(h, 1, .55); u.M.o2.color.setHSL((h + .12) % 1, 1, .55); u.M.a.color.setHSL(h, 1, .6); u.M.b.color.setHSL((h + .33) % 1, 1, .6); }
-  for (let i = 0; i < n; i++) {
-    const sp = u.sparks[i], f = i / n; let x, y, z, sc;
-    if (k === 'orbit') { const a = t * 1.7 + f * 6.283, tilt = i % 2 ? .5 : -.5; x = Math.cos(a) * .6; z = Math.sin(a) * .6; y = 1.05 + Math.sin(a) * tilt + Math.sin(t * 2 + i) * .06; sc = .14; }
-    else if (k === 'storm') { const j = Math.floor(t * 11 + i * 3.7), h1 = Math.sin(j * 12.9898 + i * 78.233) * 43758.5453, h2 = Math.sin(j * 39.3468 + i * 11.135) * 24634.6345, a = (h1 - Math.floor(h1)) * 6.283; x = Math.cos(a) * .5; z = Math.sin(a) * .5; y = .2 + (h2 - Math.floor(h2)) * 1.7; sc = .09 + ((t * 11 + i * 3.7) % 1 < .45 ? .15 : 0); }
-    else { const sp_ = k === 'power' ? 1.5 : k === 'fall' ? .32 : .6, q0 = (t * sp_ + f + (i * .37) % 1) % 1, q = k === 'fall' ? 1 - q0 : q0, a = i * 2.4 + t * (k === 'fall' ? .5 : 1.1), rad = (k === 'power' ? .6 : .48) - q * (k === 'fall' ? 0 : .2) + Math.sin(t * 3 + i) * .05;
-      x = Math.cos(a) * rad; z = Math.sin(a) * rad; y = .05 + q * (k === 'power' ? 2.4 : 2.0); sc = (k === 'power' ? .22 : .15) * Math.sin(Math.PI * q0); }
-    sp.position.set(x, y, z); sp.scale.set(sc, k === 'power' ? sc * 2.4 : sc, 1);
-  }
-}
-function setAura(g, i) {                        // puts aura i on a character (0 or nothing takes it off): every solid piece gets a glowing shell just outside it
-  const old = g.userData.auraG; if (old) { g.remove(old); g.userData.auraG = null; }
-  for (const o of g.userData.auraInk || []) if (o.parent) o.parent.remove(o);
-  g.userData.auraInk = [];
-  i = i | 0; if (i <= 0 || !AURAS[i]) return;
-  try {
-    const list = []; g.traverse(o => { if (o.isMesh && !o.userData.ink && o.material && !Array.isArray(o.material) && !o.material.transparent && o.geometry && o.geometry.attributes && o.geometry.attributes.normal) list.push(o); });
-    const a = mkAura(AURAS[i]), M = a.userData.aura.M, two = !(cfg.perf || cfg.q <= 1);
-    for (const m of list) for (const mat of two ? [M.o1, M.o2] : [M.o1]) { const o = new THREE.Mesh(m.geometry, mat); o.userData.ink = 1; o.castShadow = false; o.receiveShadow = false; o.renderOrder = 2; m.add(o); g.userData.auraInk.push(o); }
-    g.add(a); g.userData.auraG = a;
-  } catch (e) {}
-}
-const bAura = b => b.aura ? AURAS.findIndex(q => q.name === b.aura) : -1;      // a bundle may carry an aura, named
-let auraPrev = -1;
-function buildHero() { buildChar(hero, heroUp, heroHead, SKINS[prevSkin >= 0 ? prevSkin : save.skin], WRAPS[prevWrap >= 0 ? prevWrap : save.wrap], true); setAura(hero, auraPrev >= 0 ? auraPrev : save.aura); }
+function buildHero() { buildChar(hero, heroUp, heroHead, SKINS[prevSkin >= 0 ? prevSkin : save.skin], WRAPS[prevWrap >= 0 ? prevWrap : save.wrap], true); }
 function buildChar(hero, heroUp, heroHead, S, wr, main) {
   for (const g of [heroHead, heroUp, hero]) while (g.children.length) g.remove(g.children[0]);
   // everything hangs off an inner body group with jointed arms and legs, so poses and intros can move it
@@ -2795,8 +2729,7 @@ if (!Array.isArray(save.fins)) save.fins = []; for (const i of [0, 1]) if (!save
 save.fin = clamp(save.fin | 0, 0, FINISHERS.length - 1); if (!save.fins.includes(save.fin)) save.fin = 0;
 if (!Array.isArray(save.revs)) save.revs = []; if (!save.revs.includes(0)) save.revs.push(0);
 save.rev = clamp(save.rev | 0, 0, REVIVES.length - 1); if (!save.revs.includes(save.rev)) save.rev = 0;
-if (!Array.isArray(save.auras)) save.auras = []; if (!save.auras.includes(0)) save.auras.push(0);
-save.aura = clamp(save.aura | 0, 0, AURAS.length - 1); if (!save.auras.includes(save.aura)) save.aura = 0;
+delete save.auras; delete save.aura;      // auras were removed from the game
 save.skin = clamp(save.skin | 0, 0, SKINS.length - 1); save.wrap = clamp(save.wrap | 0, 0, WRAPS.length - 1); save.credits = Math.max(0, Math.floor(+save.credits || 0));      // plain number, so very large balances survive a reload
 if ((save.eco | 0) < 1) { save.eco = 1; save.credits = 600; delete save.codes; try { localStorage.setItem('deadshift.save', JSON.stringify(save)); } catch (e) {} }      // one-time coin reset: every player goes back to 600
 if (!save.bp || typeof save.bp !== 'object') save.bp = {}; save.bp.xp = Math.max(0, save.bp.xp | 0); save.bp.paid = save.bp.paid ? 1 : 0;
@@ -3385,7 +3318,7 @@ function addBot(o) {
 }
 function ensureModel(b) {                        // character models are only built once a bot comes into view
   if (b.g) return;
-  b.g = mkChar(b.skin, b.wrap); if (b.aura) setAura(b.g, b.aura); b.rig = b.g.userData.rig; b.g.userData.intro = b.intro;
+  b.g = mkChar(b.skin, b.wrap); b.rig = b.g.userData.rig; b.g.userData.intro = b.intro;
   if (b.team === 0 && b.ai === 'bot') {            // teammates carry their name overhead; enemies do not
     const c = document.createElement('canvas'); c.width = 256; c.height = 48; const g2 = c.getContext('2d');
     g2.font = '600 30px "Barlow Condensed", Arial, sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.lineWidth = 6; g2.strokeStyle = 'rgba(0,0,0,.8)'; g2.strokeText(b.name.toUpperCase(), 128, 26); g2.fillStyle = '#8dff9a'; g2.fillText(b.name.toUpperCase(), 128, 26);
@@ -4133,10 +4066,10 @@ function getStock() {
   const pinned = BUNDLES.map((b, i) => b.pin ? i : -1).filter(i => i >= 0);
   stock = { hour, bundles: take(BUNDLES.map((_, i) => i), 10),      // ten bundles a hour from all of them, like every other section
     skins: take(paid(SKINS), 10).sort((x, y) => SKINS[x].price - SKINS[y].price), wraps: take(paid(WRAPS), 10).sort((x, y) => WRAPS[x].price - WRAPS[y].price),
-    melees: take(paid(MELEE), 10).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 10).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 10).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 10).sort((x, y) => REVIVES[x].price - REVIVES[y].price) , auras: take(paid(AURAS), 10).sort((x, y) => AURAS[x].price - AURAS[y].price) };
+    melees: take(paid(MELEE), 10).sort((x, y) => MELEE[x].price - MELEE[y].price), intros: take(paid(INTROS), 10).sort((x, y) => INTROS[x].price - INTROS[y].price), fins: take(paid(FINISHERS), 10).sort((x, y) => FINISHERS[x].price - FINISHERS[y].price), revs: take(paid(REVIVES), 10).sort((x, y) => REVIVES[x].price - REVIVES[y].price)  };
   return stock;
 }
-const bundleParts = b => b.skins.map(i => ['skins', i, SKINS[i]]).concat([['wraps', b.wrap, WRAPS[b.wrap]], ['melees', b.melee, MELEE[b.melee]], ['intros', b.intro, INTROS[b.intro]]]).concat(b.fin >= 0 ? [['fins', b.fin, FINISHERS[b.fin]]] : [], b.rev >= 0 ? [['revs', b.rev, REVIVES[b.rev]]] : [], bAura(b) > 0 ? [['auras', bAura(b), AURAS[bAura(b)]]] : []);
+const bundleParts = b => b.skins.map(i => ['skins', i, SKINS[i]]).concat([['wraps', b.wrap, WRAPS[b.wrap]], ['melees', b.melee, MELEE[b.melee]], ['intros', b.intro, INTROS[b.intro]]]).concat(b.fin >= 0 ? [['fins', b.fin, FINISHERS[b.fin]]] : [], b.rev >= 0 ? [['revs', b.rev, REVIVES[b.rev]]] : []);
 const bundleFull = b => bundleParts(b).reduce((n, p) => n + p[2].price, 0);
 const bundleCost = b => Math.round(bundleParts(b).reduce((n, p) => n + (save[p[0]].includes(p[1]) ? 0 : p[2].price), 0) * .7 / 10) * 10;
 const cr = n => n.toLocaleString('en-US');
@@ -4158,15 +4091,11 @@ function thumb(kind, id) {                    // returns a data URL once rendere
   return thumbCache[key];
 }
 function renderThumb(kind, id) {
-  const tallPic = kind === 'coin' || kind === 'skin' || kind === 'intro' || kind === 'fin' || kind === 'rev' || kind === 'aura', key = kind + id, w = tallPic ? 256 : 352, h = tallPic ? 320 : 198, g = new THREE.Group(), rtKey = tallPic ? 'skin' : 'wide';
+  const tallPic = kind === 'coin' || kind === 'skin' || kind === 'intro' || kind === 'fin' || kind === 'rev', key = kind + id, w = tallPic ? 256 : 352, h = tallPic ? 320 : 198, g = new THREE.Group(), rtKey = tallPic ? 'skin' : 'wide';
   try {
     if (kind === 'skin') {
       buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[id], WRAPS[0], false);
       g.rotation.y = .5; thumbCam.position.set(0, 1.05, 4.5); vT.set(0, .96, 0);
-    } else if (kind === 'aura') {
-      const pr = String(id).split('_');
-      buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[+pr[1]] || SKINS[0], WRAPS[save.wrap], false);
-      setAura(g, +pr[0]); if (g.userData.auraG) auraPose(g.userData.auraG, 2.2); g.rotation.y = .5; thumbCam.position.set(0, 1.15, 5.6); vT.set(0, 1.05, 0);
     } else if (kind === 'rev') {
       const pr = String(id).split('_'), R = REVIVES[+pr[0]];
       buildChar(g, new THREE.Group(), new THREE.Group(), SKINS[+pr[1]] || SKINS[0], WRAPS[save.wrap], false);
@@ -4199,12 +4128,12 @@ function renderThumb(kind, id) {
   } catch (e) { try { renderer.setRenderTarget(null); renderer.setClearColor(clearCol, 1); thumbScene.remove(g); } catch (e2) {} }
 }
 function shopPreview() {
-  prevSkin = prevWrap = prevMelee = prevIntro = -1; introT = 0; auraPrev = sel.k === 'aura' ? sel.i : -1; prevFin = sel.k === 'fin' ? sel.i : -1; prevRev = sel.k === 'rev' ? sel.i : -1;
+  prevSkin = prevWrap = prevMelee = prevIntro = -1; introT = 0; prevFin = sel.k === 'fin' ? sel.i : -1; prevRev = sel.k === 'rev' ? sel.i : -1;
   if (sel.k === 'intro' || sel.k === 'outro') prevIntro = sel.i;
   if (sel.k === 'skin') prevSkin = sel.i;
   else if (sel.k === 'wrap') prevWrap = sel.i;
   else if (sel.k === 'melee') prevMelee = sel.i;
-  else if (sel.k === 'bundle') { const b = BUNDLES[sel.i]; prevSkin = b.skins[sel.c % b.skins.length]; prevWrap = b.wrap; prevMelee = b.melee; prevIntro = b.intro; if (bAura(b) > 0) auraPrev = bAura(b); }
+  else if (sel.k === 'bundle') { const b = BUNDLES[sel.i]; prevSkin = b.skins[sel.c % b.skins.length]; prevWrap = b.wrap; prevMelee = b.melee; prevIntro = b.intro; }
   buildHero();
   while (meleeShow.children.length) meleeShow.remove(meleeShow.children[0]);
   if (sel.k === 'melee') { const m = meleeModel(sel.i); m.position.y = -.25; meleeShow.add(m); }
@@ -4242,8 +4171,6 @@ function renderShop() {
   st.intros.forEach(i => hi.append(card('', 'intro', i, INTROS[i].name, [['intro', i + '_' + save.skin]], [price(save.intros.includes(i), save.intro === i, INTROS[i].price)], rarity(INTROS[i]))));
   const hr_ = $('shRevs'); hr_.innerHTML = '';
   st.revs.forEach(i => hr_.append(card('', 'rev', i, REVIVES[i].name, [['rev', i + '_' + save.skin]], [price(save.revs.includes(i), save.rev === i, REVIVES[i].price)], rarity(REVIVES[i]))));
-  const ha = $('shAuras'); ha.innerHTML = '';
-  st.auras.forEach(i => ha.append(card('', 'aura', i, AURAS[i].name, [['aura', i + '_' + save.skin]], [price(save.auras.includes(i), save.aura === i, AURAS[i].price)], rarity(AURAS[i]))));
   const hf = $('shFins'); hf.innerHTML = '';
   st.fins.forEach(i => hf.append(card('', 'fin', i, FINISHERS[i].name, [['fin', i + '_' + save.skin]], [price(save.fins.includes(i), save.fin === i, FINISHERS[i].price)], rarity(FINISHERS[i]))));
   $('shCred').textContent = cr(save.credits) + ' credits'; $('lbCred').textContent = cr(save.credits);
@@ -4253,12 +4180,11 @@ function renderShop() {
     equipped = owned && save.skin === prevSkin && save.wrap === b.wrap && loadout.melee === b.melee && save.intro === b.intro; desc = parts.map(p => p[2].name).join(', ') + (b.skins.length > 1 ? '. Tap the bundle again to see the next character.' : '.'); }
   else if (sel.k === 'skin') { name = SKINS[sel.i].name; owned = save.skins.includes(sel.i); equipped = save.skin === sel.i; cost = SKINS[sel.i].price; desc = 'Character skin'; }
   else if (sel.k === 'intro') { name = INTROS[sel.i].name; owned = save.intros.includes(sel.i); equipped = save.intro === sel.i; cost = INTROS[sel.i].price; desc = 'Intro / outro: play it when you land, on the results screen, or both'; }
-  else if (sel.k === 'aura') { name = AURAS[sel.i].name; owned = save.auras.includes(sel.i); equipped = save.aura === sel.i; cost = AURAS[sel.i].price; desc = 'Aura: a glowing outline around your character that everyone can see'; }
   else if (sel.k === 'rev') { name = REVIVES[sel.i].name; owned = save.revs.includes(sel.i); equipped = save.rev === sel.i; cost = REVIVES[sel.i].price; desc = 'Revive animation: plays while you bring a teammate back'; }
   else if (sel.k === 'fin') { name = FINISHERS[sel.i].name; owned = save.fins.includes(sel.i); equipped = save.fin === sel.i; cost = FINISHERS[sel.i].price; desc = 'Finisher: use it on a knocked-down enemy player'; }
   else if (sel.k === 'melee') { name = MELEE[sel.i].name; owned = save.melees.includes(sel.i); equipped = loadout.melee === sel.i; cost = MELEE[sel.i].price; desc = 'Melee weapon: ' + MELEE[sel.i].note; }
   else { name = WRAPS[sel.i].name; owned = save.wraps.includes(sel.i); equipped = save.wrap === sel.i; cost = WRAPS[sel.i].price; desc = 'Weapon wrap for all three firearms'; }
-  const rr = sel.k === 'bundle' ? Math.max(...bundleParts(BUNDLES[sel.i]).map(p => rarity(p[2]))) : rarity((sel.k === 'skin' ? SKINS : sel.k === 'wrap' ? WRAPS : sel.k === 'melee' ? MELEE : sel.k === 'fin' ? FINISHERS : sel.k === 'rev' ? REVIVES : sel.k === 'aura' ? AURAS : INTROS)[sel.i]);
+  const rr = sel.k === 'bundle' ? Math.max(...bundleParts(BUNDLES[sel.i]).map(p => rarity(p[2]))) : rarity((sel.k === 'skin' ? SKINS : sel.k === 'wrap' ? WRAPS : sel.k === 'melee' ? MELEE : sel.k === 'fin' ? FINISHERS : sel.k === 'rev' ? REVIVES : INTROS)[sel.i]);
   $('shRar').textContent = RAR[rr][0]; $('shRar').style.color = RAR[rr][1];
   $('shName').textContent = name; $('shDesc').textContent = desc;
   btn.disabled = owned ? equipped : save.credits < cost;
@@ -4268,15 +4194,11 @@ $('btnBuy').addEventListener('click', () => {
   if (sel.k === 'bundle') {
     const b = BUNDLES[sel.i], cost = bundleCost(b);
     if (cost > 0) { if (save.credits < cost) return; save.credits -= cost; for (const p of bundleParts(b)) if (!save[p[0]].includes(p[1])) save[p[0]].push(p[1]); sfx.pickup(); }
-    save.skin = b.skins[sel.c % b.skins.length]; save.wrap = b.wrap; loadout.melee = b.melee; save.intro = b.intro; if (b.fin >= 0) save.fin = b.fin; if (b.rev >= 0) save.rev = b.rev; if (bAura(b) > 0) save.aura = bAura(b); saveLoadout();
+    save.skin = b.skins[sel.c % b.skins.length]; save.wrap = b.wrap; loadout.melee = b.melee; save.intro = b.intro; if (b.fin >= 0) save.fin = b.fin; if (b.rev >= 0) save.rev = b.rev; saveLoadout();
   } else if (sel.k === 'intro') {
     const it = INTROS[sel.i];
     if (!save.intros.includes(sel.i)) { if (save.credits < it.price) return; save.credits -= it.price; save.intros.push(sel.i); sfx.pickup(); }
     save.intro = sel.i;
-  } else if (sel.k === 'aura') {
-    const it = AURAS[sel.i];
-    if (!save.auras.includes(sel.i)) { if (save.credits < it.price) return; save.credits -= it.price; save.auras.push(sel.i); sfx.pickup(); }
-    save.aura = sel.i;
   } else if (sel.k === 'rev') {
     const it = REVIVES[sel.i];
     if (!save.revs.includes(sel.i)) { if (save.credits < it.price) return; save.credits -= it.price; save.revs.push(sel.i); sfx.pickup(); }
@@ -4310,19 +4232,19 @@ function openShop() {
 }
 function closeShop() {
   shopOpen = false; $('shopFull').hidden = true; lobbyEl.classList.remove('shopping'); $('btnShop').setAttribute('aria-expanded', 'false');
-  prevSkin = prevWrap = prevMelee = prevIntro = -1; auraPrev = -1; hero.rotation.y = 0; meleeShow.visible = false; hero.visible = state === 'lobby'; buildHero(); renderLoadout(); $('lbCred').textContent = cr(save.credits);
+  prevSkin = prevWrap = prevMelee = prevIntro = -1; hero.rotation.y = 0; meleeShow.visible = false; hero.visible = state === 'lobby'; buildHero(); renderLoadout(); $('lbCred').textContent = cr(save.credits);
 }
 $('btnShop').addEventListener('click', openShop);
 $('shClose').addEventListener('click', closeShop);
 /* ---------- loadout: one screen per category, everything shown in 3D, equipped items marked ---------- */
-const LD_CATS = [['skin', 'Character'], ['wrap', 'Wraps'], ['melee', 'Melee'], ['intro', 'Intro'], ['outro', 'Outro'], ['fin', 'Finisher'], ['rev', 'Revive'], ['aura', 'Aura']];
-const OWN_KEY = { skin: 'skins', wrap: 'wraps', melee: 'melees', intro: 'intros', outro: 'intros', fin: 'fins', rev: 'revs', aura: 'auras' };
+const LD_CATS = [['skin', 'Character'], ['wrap', 'Wraps'], ['melee', 'Melee'], ['intro', 'Intro'], ['outro', 'Outro'], ['fin', 'Finisher'], ['rev', 'Revive']];
+const OWN_KEY = { skin: 'skins', wrap: 'wraps', melee: 'melees', intro: 'intros', outro: 'intros', fin: 'fins', rev: 'revs' };
 let ldCat = 'skin';
-const catList = k => k === 'skin' ? SKINS : k === 'wrap' ? WRAPS : k === 'melee' ? MELEE : k === 'fin' ? FINISHERS : k === 'rev' ? REVIVES : k === 'aura' ? AURAS : INTROS;
+const catList = k => k === 'skin' ? SKINS : k === 'wrap' ? WRAPS : k === 'melee' ? MELEE : k === 'fin' ? FINISHERS : k === 'rev' ? REVIVES : INTROS;
 const isOwned = (k, i) => save[OWN_KEY[k]].includes(i);
-const equippedIdx = k => k === 'skin' ? save.skin : k === 'wrap' ? save.wrap : k === 'melee' ? loadout.melee : k === 'intro' ? save.intro : k === 'fin' ? save.fin : k === 'rev' ? save.rev : k === 'aura' ? save.aura : save.outro;
+const equippedIdx = k => k === 'skin' ? save.skin : k === 'wrap' ? save.wrap : k === 'melee' ? loadout.melee : k === 'intro' ? save.intro : k === 'fin' ? save.fin : k === 'rev' ? save.rev : save.outro;
 function equipItem(k, i) {
-  if (k === 'skin') save.skin = i; else if (k === 'wrap') save.wrap = i; else if (k === 'intro') save.intro = i; else if (k === 'melee') loadout.melee = i; else if (k === 'fin') save.fin = i; else if (k === 'rev') save.rev = i; else if (k === 'aura') save.aura = i; else save.outro = i;
+  if (k === 'skin') save.skin = i; else if (k === 'wrap') save.wrap = i; else if (k === 'intro') save.intro = i; else if (k === 'melee') loadout.melee = i; else if (k === 'fin') save.fin = i; else if (k === 'rev') save.rev = i; else save.outro = i;
   persist(); saveLoadout();
 }
 const equippedLine = () => SKINS[save.skin].name + ' · ' + WRAPS[save.wrap].name + ' · ' + MELEE[loadout.melee].name + ' · intro ' + INTROS[save.intro].name + ' · outro ' + INTROS[save.outro].name + ' · finisher ' + FINISHERS[save.fin].name;
@@ -4335,7 +4257,7 @@ function renderLoad() {
   grid.innerHTML = ''; grid.className = 'sh-grid' + (ldCat === 'wrap' || ldCat === 'melee' ? ' wraps' : '');
   const order = list.map((_, i) => i).filter(i => isOwned(ldCat, i)).sort((a, b) => (b === eq) - (a === eq) || (list[b].price || 0) - (list[a].price || 0) || a - b);   // only what you own
   for (const i of order) {
-    const it = list[i], rr = rarity(it), kind = anim ? 'intro' : ldCat, id = anim || ldCat === 'fin' || ldCat === 'rev' || ldCat === 'aura' ? i + '_' + save.skin : i;
+    const it = list[i], rr = rarity(it), kind = anim ? 'intro' : ldCat, id = anim || ldCat === 'fin' || ldCat === 'rev' ? i + '_' + save.skin : i;
     const b = document.createElement('button'); b.type = 'button'; b.id = 'ld-' + ldCat + i; b.style.setProperty('--rar', RAR[rr][1]);
     b.className = 'card' + (ldCat === 'wrap' || ldCat === 'melee' ? ' wrap' : ''); b.setAttribute('aria-pressed', sel.k === ldCat && sel.i === i);
     const pic = document.createElement('span'); pic.className = 'pic'; const im = document.createElement('i'); im.dataset.t = kind + id; const u = thumb(kind, id); if (u) im.style.backgroundImage = 'url(' + u + ')'; pic.append(im); b.append(pic);
@@ -4350,7 +4272,7 @@ function renderLoad() {
   const it = list[isOwned(ldCat, sel.i) ? sel.i : eq], rr = rarity(it), btn = $('ldEquip');
   $('ldRar').textContent = RAR[rr][0]; $('ldRar').style.color = RAR[rr][1];
   $('ldName').textContent = it.name;
-  $('ldDesc').textContent = ldCat === 'skin' ? 'Character skin' : ldCat === 'wrap' ? (it.react ? 'Reactive wrap: ' + it.note : 'Weapon wrap for every firearm') : ldCat === 'melee' ? it.note : ldCat === 'intro' ? 'Plays when you land at the start of a match' : ldCat === 'fin' ? 'Your finisher on knocked-down enemy players' : ldCat === 'rev' ? 'Plays for the ten seconds you spend reviving a teammate' : ldCat === 'aura' ? (sel.i ? 'A glowing outline around your character that everyone can see' : 'No aura') : 'Plays on the results screen when a match ends';
+  $('ldDesc').textContent = ldCat === 'skin' ? 'Character skin' : ldCat === 'wrap' ? (it.react ? 'Reactive wrap: ' + it.note : 'Weapon wrap for every firearm') : ldCat === 'melee' ? it.note : ldCat === 'intro' ? 'Plays when you land at the start of a match' : ldCat === 'fin' ? 'Your finisher on knocked-down enemy players' : ldCat === 'rev' ? 'Plays for the ten seconds you spend reviving a teammate' : 'Plays on the results screen when a match ends';
   btn.disabled = eq === sel.i; btn.textContent = eq === sel.i ? 'Equipped' : 'Equip';
   $('ldEq').textContent = order.length + ' owned · Equipped: ' + equippedLine();
 }
@@ -4362,7 +4284,7 @@ function openLoadout() {
 }
 function closeLoadout() {
   loadOpen = false; $('loadFull').hidden = true; lobbyEl.classList.remove('shopping');
-  prevSkin = prevWrap = prevMelee = prevIntro = -1; auraPrev = -1; hero.rotation.y = 0; meleeShow.visible = false; hero.visible = state === 'lobby'; buildHero();
+  prevSkin = prevWrap = prevMelee = prevIntro = -1; hero.rotation.y = 0; meleeShow.visible = false; hero.visible = state === 'lobby'; buildHero();
 }
 $('ldClose').addEventListener('click', closeLoadout);
 function showLobby() {
@@ -4577,7 +4499,7 @@ const net = (() => {
   // ----- presence in the lobby room: who I am, my party, my invites and messages -----
   N.pub = () => {
     if (!N.room) return;
-    const me = { v: 1, id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, au: save.aura, st: lobbyish() ? 'lobby' : inTrain ? 'train' : 'match', party: N.party, pj: pjoin, rdy: N.rdy,
+    const me = { v: 1, id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, st: lobbyish() ? 'lobby' : inTrain ? 'train' : 'match', party: N.party, pj: pjoin, rdy: N.rdy,
       tk: typeof voice !== 'undefined' && voice.talk ? 1 : 0, mode: N.isMember() ? null : { m: cfg.mode, t: cfg.team, f: cfg.fill }, inv: invs.length ? invs : null, dm: dms.length ? dms : null, go, q: N.q, mm, om: N.ev && N.match && N.match.t0 && N.match.t0 - now() > 12000 ? { k: N.match.k, seed: N.match.seed, t0: N.match.t0 } : null };
     const js = JSON.stringify(me); if (js === lastPub) return; lastPub = js;
     try { N.room.presence(me).catch(() => {}); } catch (e) {}
@@ -4587,7 +4509,7 @@ const net = (() => {
     for (const p of list || []) {
       if (!p || p.isMe || p.kind === 'agent') continue; const pr = p.presence || {}, id = clean(pr.id, 40); if (!id || id === N.id) continue;
       const old = N.peers.get(id); if (old && old.at > p.updatedAt) continue;
-      N.peers.set(id, { id, n: clean(pr.n, 16) || 'Player', sk: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wr: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, au: num(pr.au, 0, AURAS.length - 1, 0) | 0, st: pr.st === 'match' || pr.st === 'train' ? pr.st : 'lobby', party: clean(pr.party, 40) || id, pj: num(pr.pj, 0, 9e15, 0), rdy: pr.rdy ? 1 : 0, tk: pr.tk ? 1 : 0,
+      N.peers.set(id, { id, n: clean(pr.n, 16) || 'Player', sk: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wr: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, st: pr.st === 'match' || pr.st === 'train' ? pr.st : 'lobby', party: clean(pr.party, 40) || id, pj: num(pr.pj, 0, 9e15, 0), rdy: pr.rdy ? 1 : 0, tk: pr.tk ? 1 : 0,
         mode: pr.mode && typeof pr.mode === 'object' ? { m: pr.mode.m === 'training' ? 'training' : 'extraction', t: num(pr.mode.t, 1, 4, 1) | 0, f: pr.mode.f ? 1 : 0 } : null,
         om: pr.om && typeof pr.om === 'object' ? { k: clean(pr.om.k, 24), seed: num(pr.om.seed, 0, 2e9, 1) | 0, t0: num(pr.om.t0, 0, 9e15, 0) } : null,
         go: pr.go && typeof pr.go === 'object' ? pr.go : null, q: pr.q && typeof pr.q === 'object' ? pr.q : null, mm: pr.mm && typeof pr.mm === 'object' ? pr.mm : null,
@@ -4665,7 +4587,7 @@ const net = (() => {
   N.spawnMates = () => {                           // the other players on my team, standing in for bot team-mates
     if (!N.match) return; let slot = 1;
     for (const id of N.match.ids) { if (id === N.id) continue; const info = N.peers.get(id) || {}, o = [[1.7, 0], [-1.7, 0], [0, 1.7], [0, -1.7]][slot - 1] || [0, 0];
-      addBot({ skin: num(info.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(info.wr, 0, WRAPS.length - 1, 0) | 0, aura: num(info.au, 0, AURAS.length - 1, 0) | 0, x: P.x + o[0], z: P.z + o[1], yaw: 0, team: 0, ai: 'bot', net: id, name: info.n || friends[id] || 'Player', gun: BGUNS[0], slot: slot++, intro: 0, outro: 1, finI: 0, revI: 0 }); }
+      addBot({ skin: num(info.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(info.wr, 0, WRAPS.length - 1, 0) | 0, x: P.x + o[0], z: P.z + o[1], yaw: 0, team: 0, ai: 'bot', net: id, name: info.n || friends[id] || 'Player', gun: BGUNS[0], slot: slot++, intro: 0, outro: 1, finI: 0, revI: 0 }); }
   };
   N.drive = (b, dt) => {                           // a remote team-mate follows what their own game reports
     const pr = N.mp.get(b.net);
@@ -4871,7 +4793,7 @@ const net = (() => {
     const show = state === 'lobby' && hero.visible && !shopOpen && !loadOpen && !bpOpen, ids = show ? partyIds().filter(id => id !== N.id).slice(0, 3) : [];
     for (const [id, c] of N.chars) if (!ids.includes(id)) { scene.remove(c.g); N.chars.delete(id); }
     ids.forEach((id, i) => { const p = N.peers.get(id); if (!p) return; let c = N.chars.get(id);
-      if (!c || c.sk !== p.sk || c.wr !== p.wr || c.n !== p.n || c.au !== p.au) { if (c) scene.remove(c.g); const g = mkChar(p.sk, p.wr); setAura(g, p.au); g.add(tagFor(p.n.toUpperCase())); c = { g, sk: p.sk, wr: p.wr, n: p.n, au: p.au }; N.chars.set(id, c); }
+      if (!c || c.sk !== p.sk || c.wr !== p.wr || c.n !== p.n) { if (c) scene.remove(c.g); const g = mkChar(p.sk, p.wr); g.add(tagFor(p.n.toUpperCase())); c = { g, sk: p.sk, wr: p.wr, n: p.n }; N.chars.set(id, c); }
       const o = [[-1.3, -.4], [1.3, -.4], [-2.5, -.9]][i]; c.g.visible = true; c.g.position.set(hx + o[0], 0, hz + o[1]); c.g.rotation.set(0, 0, 0);
       if (c.g.userData.rig) applyPose(c.g.userData.rig, walking ? walkPose(walkPh + (i + 1) * 1.7, menuT + i) : idlePose(menuT + i * 2.3)); });
   };
@@ -4905,12 +4827,12 @@ const net = (() => {
         if (st !== lastSt) { if (st > lastSt && (state === 'play' || state === 'spec' || state === 'over')) N.mroom.emit('ko', { s: st, by: P.lastHit && P.lastHit.net ? P.lastHit.net : null, n: clean(playerName, 16), byN: P.lastHit ? clean(whoName(P.lastHit), 20) : '' }); lastSt = st; }
         if (inTown) for (const [id, pr] of N.mp) {     // real players on other teams appear as enemies
           if (N.match.ids.includes(id) || botOf(id) || pr.s === 2 || pr.out || typeof pr.x !== 'number') continue;
-          const b = addBot({ skin: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, aura: num(pr.au, 0, AURAS.length - 1, 0) | 0, x: pr.x, z: num(pr.z, -1e5, 1e5, 0), yaw: 0, team: 100 + hashS(pr.tm || id) % 800, ai: 'bot', net: id, name: clean(pr.n, 16) || 'Player', gun: BGUNS[0], slot: 0, intro: 0, outro: 1, finI: 0, revI: 0 }); b.lastF = pr.f; }
+          const b = addBot({ skin: num(pr.sk, 0, SKINS.length - 1, 0) | 0, wrap: num(pr.wr, 0, WRAPS.length - 1, 0) | 0, x: pr.x, z: num(pr.z, -1e5, 1e5, 0), yaw: 0, team: 100 + hashS(pr.tm || id) % 800, ai: 'bot', net: id, name: clean(pr.n, 16) || 'Player', gun: BGUNS[0], slot: 0, intro: 0, outro: 1, finI: 0, revI: 0 }); b.lastF = pr.f; }
         world(dt);
       }
       mT += dt;
       if (mT > .1 && N.mroom) { mT = 0;
-        const me = { id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, au: save.aura, tm: N.match.tk, ts: cfg.team, fl: cfg.fill, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
+        const me = { id: N.id, n: clean(playerName, 16), sk: save.skin, wr: save.wrap, tm: N.match.tk, ts: cfg.team, fl: cfg.fill, x: +P.x.toFixed(2), z: +P.z.toFixed(2), y: +(P.y || 0).toFixed(2), yaw: +((P.drive ? P.drive.yaw : P.yaw + Math.PI)).toFixed(3), hp: Math.max(0, P.hp | 0), s: P.dead ? 2 : P.down ? 1 : 0, bl: Math.max(0, P.bleed | 0),
           sp: state === 'play' && !P.drive && P.moving > .1 ? +(P.sprinting ? 6.6 : 3.6 * Math.min(1, P.moving)).toFixed(1) : 0, a: aimK > .5 ? 1 : 0, c: P.crouch ? 1 : 0, sl: P.slideT > 0 ? 1 : 0, f: fireN, rv: N.reviving, rd: revd, out: extracted ? 1 : 0, tk: voice.talk ? 1 : 0 };
         try { N.mroom.presence(me).catch(() => {}); } catch (e) {}
       }
