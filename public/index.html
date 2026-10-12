@@ -2665,7 +2665,11 @@ W.forEach((w, i) => Object.assign(w, gunModel(i)));
 W.push({ name: 'Melee', melee: true, dmg: 0, rate: 0, size: 0, reload: 0, spread: 0, pellets: 0, kick: 0, mz: 0, sy: 0, az: -.42, zoom: 0, max: 0, g: new THREE.Group(), slide: null, pump: null, magMesh: null });
 
 /* ================= audio ================= */
-let ac = null, master = null, echoIn = null, muted = false, noiseBuf = null;
+let ac = null, master = null, echoIn = null, muted = false, noiseBuf = null, windG = null, windOn = -1;
+function ambTick() {                             // wind fades in during a match and out everywhere else
+  if (!ac || !windG) return; const on = state === 'play' || state === 'inv' || state === 'spec' ? 1 : 0;
+  if (on !== windOn) { windOn = on; try { windG.gain.setTargetAtTime(on ? .045 : 0, ac.currentTime, .9); } catch (e) {} }
+}
 function initAudio() {
   if (ac) { if (ac.state === 'suspended') ac.resume().catch(() => {}); return; }
   try {
@@ -2679,14 +2683,9 @@ function initAudio() {
     echoIn.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet); wet.connect(master);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    const loop = (type, f, gain) => {
-      const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
-      const fl = ac.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = .4;
-      const g = ac.createGain(); g.gain.value = gain; s.connect(fl); fl.connect(g); g.connect(master); s.start(0, Math.random());
-    };
-    loop('lowpass', 240, .08);        // wind
-    loop('bandpass', 4200, .05);      // rain hiss
-    loop('highpass', 7000, .018);
+    { const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;      // a low wind under matches only; the old rain and high hiss loops are gone (they were the static)
+      const fl = ac.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 220; fl.Q.value = .4;
+      windG = ac.createGain(); windG.gain.value = 0; s.connect(fl); fl.connect(windG); windG.connect(master); s.start(0, Math.random()); }
   } catch (e) { ac = null; }
 }
 function out(node, o) {
@@ -6028,7 +6027,7 @@ function frame(now) {
   lastDraw = now;
   const dt = Math.min(.05, (now - last) / 1000); last = now;
   if ((shopOpen || loadOpen || bpOpen) && thumbQueue.length) { const q = thumbQueue.shift(); renderThumb(q[0], q[1]); }
-  net.tick(dt); musicTick();
+  net.tick(dt); musicTick(); ambTick();
   frameN++; { const calm = cfg.q >= 3 && dyn >= .95; renderer.shadowMap.autoUpdate = calm; if (!calm) renderer.shadowMap.needsUpdate = dyn < .7 ? frameN % 3 === 0 : (frameN & 1) === 0; }
   if (state === 'play' || state === 'spec') {     // automatic resolution: drop a notch when the frame rate sags, creep back up when there is room
     ema += (dt - ema) * .06; dynT += dt; dynHold -= dt; const want = 1 / Math.min(cfg.fps, 60);
